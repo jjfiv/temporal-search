@@ -1,4 +1,4 @@
-package ts
+package ciir.ts
 
 object App {
   def main(args: Array[String]) {

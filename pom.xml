@@ -12,8 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.scala.displayCmd>true</maven.scala.displayCmd>
-    <mainClass>ts.App</mainClass>
+    <mainClass>ciir.ts.App</mainClass>
   </properties>
 
   <dependencies>
@@ -110,7 +109,7 @@
             <manifest>
               <classpathPrefix>lib/</classpathPrefix>
               <addClasspath>true</addClasspath>
-              <mainClass>ts.App</mainClass>
+              <mainClass>ciir.ts.App</mainClass>
             </manifest>
           </archive>
         </configuration>

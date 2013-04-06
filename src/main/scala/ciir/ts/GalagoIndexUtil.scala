@@ -4,9 +4,16 @@ import org.lemurproject.galago.core.index.Index
 import org.lemurproject.galago.core.index.ValueIterator
 import org.lemurproject.galago.core.retrieval.iterator.MovableCountIterator
 import org.lemurproject.galago.core.retrieval.ScoredDocument
+import org.lemurproject.galago.core.retrieval.LocalRetrieval
 import org.lemurproject.galago.core.retrieval.processing.ScoringContext
+import org.lemurproject.galago.tupleflow.Parameters
 
 object GalagoIndexUtil {
+  def retrievalFromPath(indexPath: String): LocalRetrieval = {
+    var parms = new Parameters()
+    new LocalRetrieval(indexPath, parms)
+  }
+
   def forKeyInIndex(index: Index, indexPartName: String, block: (String,MovableCountIterator)=>Unit) {
     var indexPartReader = index.getIndexPart(indexPartName)
     if(indexPartReader == null) { return }

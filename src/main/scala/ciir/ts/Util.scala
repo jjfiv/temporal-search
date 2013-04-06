@@ -1,23 +1,7 @@
 package ciir.ts
 
-import org.lemurproject.galago.tupleflow.Parameters
-
 object Util {
   import java.io._
-
-  def argsAsJSON(argv: Array[String]): Parameters = {
-    val (files, args) = argv.partition(fileExists)
-
-    var parameters = new Parameters()
-    
-    // load all json files given
-    files.map(f => { parameters.copyFrom(Parameters.parse(new File(f))) })
-
-    // read parameters from arguments next
-    parameters.copyFrom(new Parameters(args));
-
-    parameters
-  }
 
   def fileExists(fileName: String) = {
     new File(fileName).exists()

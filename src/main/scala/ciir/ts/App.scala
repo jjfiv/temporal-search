@@ -15,7 +15,8 @@ object IndexInspector {
 object App {
   var actions = Map[String,Array[String]=>Unit](
     ("inspect" -> IndexInspector.run),
-    ("count-books" -> CountBooksByDate.run)
+    ("count-books" -> CountBooksByDate.run),
+    ("graph-books" -> CountBooksByDate.graph)
     )
 
   def printAvailable() {

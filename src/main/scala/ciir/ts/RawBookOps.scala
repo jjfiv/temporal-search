@@ -1,5 +1,7 @@
 package ciir.ts
 
+import gnu.trove.map.hash.TIntIntHashMap
+
 class XMLStream(path: String) {
   var inputStream = Util.textInputStream(path)
   def close() { inputStream.close() }
@@ -125,7 +127,6 @@ object CountBooksByDate {
     // reject mismatched metadata
     val mid = metadata.getOrElse("identifier", "")
     if(mid != key) {
-      //println((mid, key))
       badMetadata += 1
     }
     // reject not-obviously-english text
@@ -162,7 +163,7 @@ object CountBooksByDate {
       nodeID = (args(2).toInt - 1) // turn from 1-based to 0-based
       numNodes = args(3).toInt
       assert(nodeID < numNodes && nodeID >= 0)
-      Console.err.println("Swarm Compute Node "+nodeID+"/"+numNodes)
+      Console.err.println("# Swarm Compute Node "+nodeID+"/"+numNodes)
     }
     var inputStream = Util.textInputStream(idPathFile)
 
@@ -177,6 +178,7 @@ object CountBooksByDate {
             val exists = Util.fileExists(path)
             if(exists) {
               numBooks += 1
+              if(numBooks % 1000 == 0) { println("# "+numBooks) }
               processBook(key,path) match {
                 case Some(yr) => {
                   println(key + " "+yr)
@@ -203,5 +205,26 @@ object CountBooksByDate {
     Console.err.println("time processing: " + (endTime - startTime)+ "ms")
   }
 
+  def graph(args: Array[String]) {
+    val fileName = args(0)
+    if(!Util.fileExists(fileName)) {
+      Console.err.println("Expected file we can open as first argument.")
+    }
+
+    var dateCounts = new TIntIntHashMap()
+    Util.forLineInFile(fileName, line => {
+      line.split("\\s") match {
+        case Array(_, dateStr) => {
+          val date = dateStr.toInt
+          dateCounts.adjustOrPutValue(date, 1, 1)
+        }
+        case _ => { }
+      }
+    })
+
+    dateCounts.keys.sorted.foreach(date => {
+      println(date+","+dateCounts.get(date))
+    })
+  }
 }
 

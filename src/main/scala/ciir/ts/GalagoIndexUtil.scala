@@ -49,7 +49,6 @@ object GalagoIndexUtil {
     }
   }
 
-
   def forDocLenInIndex(index: Index, block: (Int,Int)=>Unit) {
     var lenIter = index.getLengthsIterator
     var context = new ScoringContext

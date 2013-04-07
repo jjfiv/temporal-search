@@ -1,9 +1,10 @@
 package ciir.ts
 
-import org.lemurproject.galago.tupleflow.StreamCreator
 
 object Util {
   import java.io._
+  import java.util.zip.{GZIPInputStream, GZIPOutputStream, ZipInputStream, ZipOutputStream}
+  import org.apache.commons.compress.compressors.bzip2.{BZip2CompressorInputStream, BZip2CompressorOutputStream}
 
   def fileExists(fileName: String) = {
     if (fileName == null)
@@ -11,10 +12,34 @@ object Util {
     else new File(fileName).exists()
   }
 
-  def binaryOutputStream(fn: String) = StreamCreator.openOutputStream(fn)
-  def binaryInputStream(fn: String) = StreamCreator.openInputStream(fn)
+  def binaryOutputStream(fn: String): DataOutputStream = {
+    val fis = new FileOutputStream(fn)
+    
+    if(fn.endsWith(".gz")) {
+      new DataOutputStream(new GZIPOutputStream(fis))
+    } else if(fn.endsWith(".bz") || fn.endsWith(".bz2")) {
+      new DataOutputStream(new BZip2CompressorOutputStream(fis))
+    } else if(fn.endsWith(".zip")) {
+      new DataOutputStream(new ZipOutputStream(fis))
+    } else {
+      new DataOutputStream(fis)
+    }
+  }
+  def binaryInputStream(fn: String): DataInputStream = {
+    val fis = new FileInputStream(fn)
+    
+    if(fn.endsWith(".gz")) {
+      new DataInputStream(new GZIPInputStream(fis))
+    } else if(fn.endsWith(".bz") || fn.endsWith(".bz2")) {
+      new DataInputStream(new BZip2CompressorInputStream(fis))
+    } else if(fn.endsWith(".zip")) {
+      new DataInputStream(new ZipInputStream(fis))
+    } else {
+      new DataInputStream(fis)
+    }
+  }
   def textOutputStream(fn: String) = new BufferedWriter(new OutputStreamWriter(binaryOutputStream(fn)))
-  def textInputStream(fn: String) = new BufferedReader(new InputStreamReader(StreamCreator.openInputStream(fn)))
+  def textInputStream(fn: String) = new BufferedReader(new InputStreamReader(binaryInputStream(fn)))
 
   def forLineInFile(fn: String, op: String=>Unit) {
     var fp = textInputStream(fn)

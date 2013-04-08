@@ -1,12 +1,15 @@
 package ciir.ts
 
-import org.lemurproject.galago.core.index.Index
-import org.lemurproject.galago.core.index.ValueIterator
-import org.lemurproject.galago.core.retrieval.iterator.MovableCountIterator
-import org.lemurproject.galago.core.retrieval.ScoredDocument
-import org.lemurproject.galago.core.retrieval.LocalRetrieval
-import org.lemurproject.galago.core.retrieval.processing.ScoringContext
-import org.lemurproject.galago.tupleflow.Parameters
+import org.lemurproject.galago.{core => GalagoCore}
+import org.lemurproject.galago.{tupleflow => GalagoTupleflow}
+
+import GalagoCore.index.Index
+import GalagoCore.index.ValueIterator
+import GalagoCore.retrieval.iterator.MovableCountIterator
+import GalagoCore.retrieval.ScoredDocument
+import GalagoCore.retrieval.LocalRetrieval
+import GalagoCore.retrieval.processing.ScoringContext
+import GalagoTupleflow.Parameters
 
 object GalagoIndexUtil {
   def retrievalFromPath(indexPath: String): LocalRetrieval = {

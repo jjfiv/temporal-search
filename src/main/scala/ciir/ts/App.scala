@@ -15,6 +15,9 @@ object IndexInspector {
 object App {
   var actions = Map[String,Array[String]=>Unit](
     ("inspect" -> IndexInspector.run),
+
+    ("explore-dates-build" -> DateExplorer.buildIndex),
+
     ("count-books" -> CountBooksByDate.run),
     ("count-books-graph" -> CountBooksByDate.graph),
     ("count-books-stat" -> CountBooksByDate.stats)

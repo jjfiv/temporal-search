@@ -135,7 +135,7 @@ object DateExplorer {
     var curvesTouched = 0
 
     // handle each argument as a galago index
-    val retrieval = GalagoIndexUtil.retrievalFromPath(indexPath)
+    val retrieval = GalagoIndexUtil.retrievalFromPath(inputFile)
     val index = retrieval.getIndex
     
     var dateInfo = new LocalDateInfo(retrieval)
@@ -169,8 +169,45 @@ object DateExplorer {
       })
     })
 
-    println("Parsed "+curvesTouched +" and kept " + curvesKept)
+    println("Parsed "+curvesTouched+" and kept " + curvesKept)
     fp.close()
+  }
+
+  // outputs a CSV to stdout
+  def plotTerms(args: Array[String]) {
+    if(args.size < 2) {
+      Console.err.println("Needs at least two arguments (Galago input index) and (terms...)")
+      sys.exit(-1)
+    }
+
+    val galagoIndex = args.head
+    val terms = args.tail
+
+    val retrieval = GalagoIndexUtil.retrievalFromPath(galagoIndex)
+    val dateInfo = new LocalDateInfo(retrieval)
+
+    val numDocs = retrieval.getCollectionStatistics("#lengths:document:part=lengths()").documentCount.toInt
+
+    val results = terms.map(term => {
+      var dateCounts = new TIntIntHashMap
+      RawSearch.runQuery(retrieval, numDocs, term).foreach( sdoc => {
+        val date = dateInfo.getDate(sdoc.document)
+        if(date > 0) {
+          val count = sdoc.score.toInt
+          dateCounts.adjustOrPutValue(date, count, count)
+        }
+      })
+      
+      dateCounts
+    })
+
+    // collect all dates
+    val dates = results.map(_.keys.toSet).reduce(_ | _).toArray.sorted
+    
+    println("Date,"+terms.mkString(","))
+    dates.foreach(date => {
+      println(date+","+results.map(_.get(date)).mkString(","))
+    })
   }
 
 }

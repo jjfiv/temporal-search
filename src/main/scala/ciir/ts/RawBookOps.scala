@@ -131,11 +131,14 @@ object CountBooksByDate {
     }
     // reject not-obviously-english text
     metadata.get("language") match {
-      case None => { noLanguage += 1; return None }
+      case None => { noLanguage += 1; }
       case Some(lang) => {
-        if(lang.toLowerCase != "english") {
+        val ez = lang.trim.toLowerCase
+        if(ez == "") {
+          noLanguage += 1
+        } else if(!ez.startsWith("eng")) {
+          Console.err.println("# "+lang)
           nonEnglish += 1
-          return None;
         }
       }
     }
@@ -147,12 +150,12 @@ object CountBooksByDate {
         Some(digits.toInt)
       else None
     }).headOption.getOrElse(-1)
-
+    
     if(year == -1) {
       noDate += 1
       return None;
     }
-
+    
     Some(year)
   }
 
@@ -202,29 +205,78 @@ object CountBooksByDate {
     Console.err.println("noLanguage " + noLanguage)
     Console.err.println("nonEnglish " + nonEnglish)
     Console.err.println("noDate " + noDate)
-    Console.err.println("time processing: " + (endTime - startTime)+ "ms")
+    Console.err.println("time " + (endTime - startTime))
   }
 
   def graph(args: Array[String]) {
-    val fileName = args(0)
-    if(!Util.fileExists(fileName)) {
-      Console.err.println("Expected file we can open as first argument.")
-    }
-
     var dateCounts = new TIntIntHashMap()
-    Util.forLineInFile(fileName, line => {
-      line.split("\\s") match {
-        case Array(_, dateStr) => {
-          val date = dateStr.toInt
-          dateCounts.adjustOrPutValue(date, 1, 1)
-        }
-        case _ => { }
-      }
-    })
 
+    args.foreach(fileName => {
+      if(!Util.fileExists(fileName)) {
+        Console.err.println("Expected file we can open as first argument.")
+      }
+
+      Util.forLineInFile(fileName, line => {
+        if(line.charAt(0) != '#') {
+          line.split("\\s") match {
+            case Array(_, dateStr) => {
+              val date = dateStr.toInt
+              dateCounts.adjustOrPutValue(date, 1, 1)
+            }
+            case _ => { }
+          }
+        }
+      })
+    })
+    
     dateCounts.keys.sorted.foreach(date => {
       println(date+","+dateCounts.get(date))
     })
+  }
+
+  def stats(args: Array[String]) {
+    var numBooks = 0
+    var nonExistent = 0
+    var badMetadata = 0
+    var noLanguage = 0
+    var nonEnglish = 0
+    var noDate = 0
+    var totalTime = 0
+    
+    args.foreach(fileName => {
+      if(!Util.fileExists(fileName)) {
+        Console.err.println("Expected file we can open as first argument.")
+      }
+      
+      Util.forLineInFile(fileName, line => {
+        if(line.charAt(0) != '#') {
+          line.split("\\s") match {
+            case Array(key, value) => {
+              val count = value.toInt
+              key match {
+                case "numBooks" => numBooks += count
+                case "nonExistent" => nonExistent += count
+                case "badMetadata" => badMetadata += count
+                case "noLanguage" => noLanguage += count
+                case "nonEnglish" => nonEnglish += count
+                case "noDate" => noDate += count
+                case "time" => totalTime += count
+                case _ => { }
+              }
+            }
+            case _ => { }
+          }
+        }
+      })
+    })
+    
+    println("numBooks " + numBooks)
+    println("nonExistent " + nonExistent)
+    println("badMetadata " + badMetadata)
+    println("noLanguage " + noLanguage)
+    println("nonEnglish " + nonEnglish)
+    println("noDate " + noDate)
+    println("time " + noDate)
   }
 }
 

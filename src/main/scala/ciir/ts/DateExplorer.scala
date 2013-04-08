@@ -49,7 +49,7 @@ class LocalDateInfo(val retrieval: LocalRetrieval) {
 }
 
 object DateCurve {
-  def ofTroveHash(data: TIntIntHashMap) = {
+  def ofTroveHash(term: String, data: TIntIntHashMap) = {
     val dates = data.keys
     val minDate = dates.min
     val maxDate = dates.max
@@ -65,13 +65,51 @@ object DateCurve {
       }
     })
 
-    DateCurve(minDate, counts)
+    DateCurve(term, minDate, counts)
+  }
+  def decode(dis: java.io.DataInputStream) = {
+    val term = dis.readUTF
+    val numDates = dis.readInt
+    var hash = new TIntIntHashMap
+    
+    Util.loopUntil(numDates)(x => {
+      val date = dis.readInt
+      val count = dis.readInt
+      hash.put(date, count)
+    })
+    
+    ofTroveHash(term, hash)
   }
 }
 
-case class DateCurve(val startDate: Int, val counts: Array[Int]) {
+case class DateCurve(val term: String, val startDate: Int, val counts: Array[Int]) {
   def numDates = counts.size
   def endDate = startDate + numDates
+  def encode(dos: java.io.DataOutputStream) {
+    val hash = toTroveHash()
+
+    dos.writeUTF(term)
+    dos.writeInt(hash.size)
+    hash.keys.foreach( date => {
+      val count = hash.get(date)
+      dos.writeInt(count)
+      dos.writeInt(date)
+    })
+  }
+  def toTroveHash() = {
+    val data = counts
+    val minDate = startDate
+    var hash = new TIntIntHashMap
+
+    Util.loopUntil(numDates)(idx => {
+      val count = data(idx)
+      if(count > 0) {
+        hash.put(minDate + idx, count)
+      }
+    })
+    
+    hash
+  }
 }
 
 object DateExplorer {
@@ -80,26 +118,29 @@ object DateExplorer {
   def buildIndex(args: Array[String]) {
     println("DateExplorer::buildIndex ["+args.mkString(",")+"]")
 
-    // find any non-file arguments
-    args.find(fn => !Util.fileExists(fn)) match {
-      case Some(fileName) => {
-        Console.err.println("Tried to build an index from non-existent file \""+fileName+"\"")
-        sys.exit(-1)
-      }
-      case None => { }
+    if(args.size != 2) {
+      Console.err.println("Need two arguments (Galago input index) and (output file)")
     }
+
+    val inputFile = args(0)
+    val outputFile = args(1)
+
+    if(!Util.fileExists(inputFile)) {
+      Console.err.println("Tried to build an index from non-existent file \""+inputFile+"\"")
+    }
+
+    var fp = Util.binaryOutputStream(outputFile)
     
     var curvesKept = 0
     var curvesTouched = 0
 
     // handle each argument as a galago index
-    args.map(indexPath => {
-      val retrieval = GalagoIndexUtil.retrievalFromPath(indexPath)
-      val index = retrieval.getIndex
-      
-      var dateInfo = new LocalDateInfo(retrieval)
+    val retrieval = GalagoIndexUtil.retrievalFromPath(indexPath)
+    val index = retrieval.getIndex
+    
+    var dateInfo = new LocalDateInfo(retrieval)
 
-      Util.timed("inspect postings", { 
+    Util.timed("inspect postings", { 
       GalagoIndexUtil.forKeyInIndex(index, "postings", (term,docIter) => {
         // only touch ascii terms for now, they're more likely OCR issues than valid identifiers
         // TODO
@@ -121,14 +162,15 @@ object DateExplorer {
           })
           
           if(hitCount >= UsefulCountMinimum) {
-              curvesKept += 1
+            curvesKept += 1
+            DateCurve.ofTroveHash(term,hits).encode(fp)
           }
         }
-      })
       })
     })
 
     println("Parsed "+curvesTouched +" and kept " + curvesKept)
+    fp.close()
   }
 
 }

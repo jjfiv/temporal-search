@@ -221,7 +221,11 @@ object CountBooksByDate {
           line.split("\\s") match {
             case Array(_, dateStr) => {
               val date = dateStr.toInt
-              dateCounts.adjustOrPutValue(date, 1, 1)
+              
+              // gutenberg's printing press, current date
+              if(date >= 1436 && date <= 2013) {
+                dateCounts.adjustOrPutValue(date, 1, 1)
+              }
             }
             case _ => { }
           }
@@ -230,7 +234,10 @@ object CountBooksByDate {
     })
     
     dateCounts.keys.sorted.foreach(date => {
-      println(date+","+dateCounts.get(date))
+      val counts = dateCounts.get(date)
+      if(counts >= 30) {
+        println(date+","+counts)
+      }
     })
   }
 
@@ -276,7 +283,7 @@ object CountBooksByDate {
     println("noLanguage " + noLanguage)
     println("nonEnglish " + nonEnglish)
     println("noDate " + noDate)
-    println("time " + noDate)
+    println("time " + totalTime+"ms")
   }
 }
 

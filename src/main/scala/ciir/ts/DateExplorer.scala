@@ -85,6 +85,7 @@ object DateCurve {
 case class DateCurve(val term: String, val startDate: Int, val counts: Array[Int]) {
   def numDates = counts.size
   def endDate = startDate + numDates
+  def weight = counts.sum
   def encode(dos: java.io.DataOutputStream) {
     val hash = toTroveHash()
 
@@ -267,9 +268,9 @@ object DateExplorer {
     println("# Done clustering")
     clusters.zipWithIndex.foreach {
       case (contents, i) => {
-        val topTenIndices = contents.take(20)
-        val topTenTerms = topTenIndices.map(allCurves(_).term)
-        println("Cluster "+i+": "+topTenTerms.mkString(", "))
+        val topIndices = contents.sortBy(allCurves(_).weight).takeRight(10)
+        val topTerms = topIndices.map(allCurves(_).term)
+        println("Cluster "+i+": "+topTerms.mkString(", "))
       }
     }
     

@@ -6,7 +6,7 @@ import collection.mutable.ArrayBuilder
 
 object KMeans {
   type DataVector = Array[Double]
-  def cosineDistance(v1: DataVector, v2: DataVector) = {
+  private def cosineDistance(v1: DataVector, v2: DataVector) = {
     var dotProduct = 0.0
     var mag1 = 0.0
     var mag2 = 0.0
@@ -28,49 +28,34 @@ object KMeans {
     }
   }
 
-  def maxIndex(data: Array[Double]): Int = {
-    var maxIdx = 0
-    var maxValue = Double.NegativeInfinity
-    val len = data.size
-    
-    Util.loopUntil(len)(idx => {
-      val curValue = data(idx)
-      if(maxValue < curValue) {
-        maxValue = curValue
-        maxIdx = idx
-      }
-    })
-    maxIdx
-  }
-
-  def cluster(clusters: Array[DataVector], data: Array[DataVector], enforceExpectedSize: Boolean): Array[Array[Int]] = {
+  private def cluster(clusters: Array[DataVector], data: Array[DataVector], enforceExpectedSize: Boolean): Array[Array[Int]] = {
     val numClusters = clusters.size
     var clusterBuilders = Array.fill(numClusters) { new ArrayBuilder.ofInt }
     val expectedSize = data.size / numClusters
 
     data.indices.map(vecIdx => {
       val vec = data(vecIdx)
-      // get a score for each cluster
-      val scores = clusters.map(clv => { cosineDistance(vec, clv) })
-      // find best match cluster
-      val bestCluster = maxIndex(scores)
-      var cluster = bestCluster
-      assert(cluster < numClusters && cluster >= 0)
+      // sort cluster indices by distance to each cluster
+      var dest = clusters.indices.sortBy(clIdx => {
+        cosineDistance(vec, clusters(clIdx)) 
+      })
 
+      // drop any results with full buckets if required
       if(enforceExpectedSize) {
-        // loop through clusters until back to original, looking for an okay place to put this guy..
-        while(((cluster+1) % numClusters) != bestCluster && clusterBuilders(cluster).result().size > expectedSize) {
-          cluster = (cluster + 1) % numClusters
+        val openBuckets = dest.filter(clusterBuilders(_).result.size > expectedSize)
+        if(openBuckets.size != 0) {
+          dest = openBuckets
         }
       }
+      
       // put in best match cluster
-      clusterBuilders(cluster) += vecIdx
+      clusterBuilders(dest.head) += vecIdx
     })
 
     clusterBuilders.map(_.result())
   }
 
-  def centroid(clusterContents: Array[Int], allData: Array[DataVector]): DataVector = {
+  private def centroid(clusterContents: Array[Int], allData: Array[DataVector]): DataVector = {
     val dim = allData(0).size
     var result = Array.fill(dim) { 0.0 }
     
@@ -84,7 +69,7 @@ object KMeans {
     result
   }
 
-  def clusterEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
+  private def clusterEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
     val step = (data.size / num)
     var results = new Array[DataVector](num)
     Util.loopUntil(num)(idx => {
@@ -93,7 +78,7 @@ object KMeans {
     results
   }
 
-  def sampleEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
+  private def sampleEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
     val step = (data.size / (num+1))
     var results = new Array[DataVector](num)
     Util.loopUntil(num)(idx => {
@@ -109,8 +94,8 @@ object KMeans {
 
     // group based on first K elements
     //val firstCentroids = data.take(num)
-    //val firstCentroids = sampleEvenly(num, data, labels)
-    val firstCentroids = clusterEvenly(num, data, labels)
+    val firstCentroids = sampleEvenly(num, data, labels)
+    //val firstCentroids = clusterEvenly(num, data, labels)
     val firstClusters = cluster(firstCentroids, data, true)
 
     // calculate the center of these naive clusters
@@ -119,11 +104,7 @@ object KMeans {
     // re-cluster data
     val finalResults = cluster(newCentroids, data, false)
     
-    finalResults.zipWithIndex.map {
-      case (contents, idx) => {
-        contents.sortBy(vecIdx => cosineDistance(data(vecIdx), newCentroids(idx)))
-      }
-    }
+    finalResults
   }
 
   def test() = {

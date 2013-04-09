@@ -92,8 +92,8 @@ case class DateCurve(val term: String, val startDate: Int, val counts: Array[Int
     dos.writeInt(hash.size)
     hash.keys.foreach( date => {
       val count = hash.get(date)
-      dos.writeInt(count)
       dos.writeInt(date)
+      dos.writeInt(count)
     })
   }
   def toTroveHash() = {
@@ -211,6 +211,67 @@ object DateExplorer {
   }
 
   def kmeansTerms(args: Array[String]) {
-    KMeans.test()
+    val curvesFile = args(0)
+    if(!Util.fileExists(curvesFile)) {
+      Console.err.println("First argument curvesFile='"+curvesFile+"' should exist.")
+      sys.exit(-1)
+    }
+
+    var minDate = Int.MaxValue
+    var maxDate = Int.MinValue
+    val allCurves = Util.timed("Load curves", {
+      var fp = Util.binaryInputStream(curvesFile)
+      var curveBuilder = Array.newBuilder[DateCurve]
+
+      try {
+        while(true) {
+          val curve = DateCurve.decode(fp)
+          // keep running domain
+          if(curve.startDate < minDate) minDate = curve.startDate
+          if(curve.endDate > maxDate) maxDate = curve.endDate
+          curveBuilder += curve
+        }
+      } catch {
+        case eof: java.io.EOFException => { }
+        //case ioe: java.io.IOException => { }
+      } finally {
+        fp.close()
+      }
+      
+      curveBuilder.result()
+    })
+    println("loaded "+allCurves.size+" curves")
+    println("minDate = "+minDate)
+    println("maxDate = "+maxDate)
+
+    assert(maxDate > minDate)
+
+    maxDate = 1920 // chop off poorly specified extras
+
+    // turn corpus into aligned arrays
+    val numDates = maxDate - minDate + 1
+    val vectors = Util.timed("align corpus", {
+      allCurves.flatMap(curve => {
+        if(curve.startDate < maxDate) {
+          var data = Array.fill(numDates) { 0 }
+          var pos = curve.startDate - minDate
+          curve.counts.copyToArray(data, pos, curve.numDates)
+          Some(data.map(_.toDouble))
+        } else None
+      })
+    })
+    val labels = allCurves.map(_.term)
+
+    println("# kmeans 30 groups, "+vectors.size+" vectors, "+vectors(0).size+" dimensions")
+    val clusters = Util.timed("cluster", { KMeans.kmeans(30, vectors, labels) })
+    println("# Done clustering")
+    clusters.zipWithIndex.foreach {
+      case (contents, i) => {
+        val topTenIndices = contents.take(20)
+        val topTenTerms = topTenIndices.map(allCurves(_).term)
+        println("Cluster "+i+": "+topTenTerms.mkString(", "))
+      }
+    }
+    
   }
 }

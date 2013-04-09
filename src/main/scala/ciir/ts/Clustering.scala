@@ -43,17 +43,26 @@ object KMeans {
     maxIdx
   }
 
-  def cluster(clusters: Array[DataVector], data: Array[DataVector]): Array[Array[Int]] = {
+  def cluster(clusters: Array[DataVector], data: Array[DataVector], enforceExpectedSize: Boolean): Array[Array[Int]] = {
     val numClusters = clusters.size
     var clusterBuilders = Array.fill(numClusters) { new ArrayBuilder.ofInt }
+    val expectedSize = data.size / numClusters
 
     data.indices.map(vecIdx => {
       val vec = data(vecIdx)
       // get a score for each cluster
       val scores = clusters.map(clv => { cosineDistance(vec, clv) })
       // find best match cluster
-      val cluster = maxIndex(scores)
+      val bestCluster = maxIndex(scores)
+      var cluster = bestCluster
       assert(cluster < numClusters && cluster >= 0)
+
+      if(enforceExpectedSize) {
+        // loop through clusters until back to original, looking for an okay place to put this guy..
+        while(((cluster+1) % numClusters) != bestCluster && clusterBuilders(cluster).result().size > expectedSize) {
+          cluster = (cluster + 1) % numClusters
+        }
+      }
       // put in best match cluster
       clusterBuilders(cluster) += vecIdx
     })
@@ -75,20 +84,46 @@ object KMeans {
     result
   }
 
-  def kmeans(num: Int, data: Array[DataVector]) = {
+  def clusterEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
+    val step = (data.size / num)
+    var results = new Array[DataVector](num)
+    Util.loopUntil(num)(idx => {
+      results(idx) = centroid(Array.tabulate(10)(x => step*idx + x), data)
+    })
+    results
+  }
+
+  def sampleEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
+    val step = (data.size / (num+1))
+    var results = new Array[DataVector](num)
+    Util.loopUntil(num)(idx => {
+      results(idx) = data(step*idx)
+      println("Sample: "+labels(step*idx))
+
+    })
+    results
+  }
+
+  def kmeans(num: Int, data: Array[DataVector], labels: Array[String]) = {
     require(num < data.size)
 
     // group based on first K elements
-    val firstCentroids = data.take(num)
-    val firstClusters = cluster(firstCentroids, data)
+    //val firstCentroids = data.take(num)
+    //val firstCentroids = sampleEvenly(num, data, labels)
+    val firstCentroids = clusterEvenly(num, data, labels)
+    val firstClusters = cluster(firstCentroids, data, true)
 
     // calculate the center of these naive clusters
     val newCentroids = firstClusters.map(centroid(_, data))
 
     // re-cluster data
-    val finalResults = cluster(newCentroids, data)
+    val finalResults = cluster(newCentroids, data, false)
     
-    finalResults
+    finalResults.zipWithIndex.map {
+      case (contents, idx) => {
+        contents.sortBy(vecIdx => cosineDistance(data(vecIdx), newCentroids(idx)))
+      }
+    }
   }
 
   def test() = {
@@ -108,7 +143,7 @@ object KMeans {
     //println(vectors.map("["+_.mkString(",")+"]").mkString(","))
     //println(labels.mkString(","))
 
-    val clusters = kmeans(2, vectors)
+    val clusters = kmeans(2, vectors, labels)
 
     clusters.zipWithIndex.foreach {
       case (contents, i) => println("Cluster "+i+": "+contents.map(labels(_)).mkString(","))

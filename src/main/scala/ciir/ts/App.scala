@@ -18,7 +18,8 @@ object App {
 
     ("term-plot-dates" -> DateExplorer.plotTerms),
 
-    ("explore-dates-build" -> DateExplorer.buildIndex),
+    ("dates-build" -> DateExplorer.buildIndex),
+    ("dates-kmeans" -> DateExplorer.kmeansTerms),
 
     ("count-books" -> CountBooksByDate.run),
     ("count-books-graph" -> CountBooksByDate.graph),

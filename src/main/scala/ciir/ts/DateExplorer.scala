@@ -210,4 +210,7 @@ object DateExplorer {
     })
   }
 
+  def kmeansTerms(args: Array[String]) {
+    KMeans.test()
+  }
 }

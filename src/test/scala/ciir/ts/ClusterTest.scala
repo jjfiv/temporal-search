@@ -1,6 +1,7 @@
 package ciir.ts
 
 import org.junit.Test
+import org.junit.Assert._
 
 class ClusterTest {
   @Test
@@ -23,9 +24,21 @@ class ClusterTest {
 
     val clusters = KMeans.kmeans(2, vectors, labels)
 
-    clusters.zipWithIndex.foreach {
-      case (contents, i) => println("Cluster "+i+": "+contents.map(labels(_)).mkString(","))
-    }
+    val iceCream = clusters(0).map(labels(_)).toSet
+    val littleThings = clusters(1).map(labels(_)).toSet
+
+    assertTrue(iceCream.contains("chocolate"))
+    assertTrue(iceCream.contains("vanilla"))
+    assertTrue(iceCream.contains("strawberry"))
+    assertEquals(iceCream.size, 3)
+    assertTrue(littleThings.contains("puppies"))
+    assertTrue(littleThings.contains("kittens"))
+    assertTrue(littleThings.contains("ducklings"))
+    assertEquals(littleThings.size, 3)
+
+    //clusters.zipWithIndex.foreach {
+    //  case (contents, i) => println("Cluster "+i+": "+contents.map(labels(_)).mkString(","))
+    //}
   }
 
 }

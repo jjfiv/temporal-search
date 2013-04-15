@@ -79,11 +79,11 @@ object KMeans {
   }
 
   private def sampleEvenly(num: Int, data: Array[DataVector], labels: Array[String]) = {
-    val step = (data.size / (num+1))
+    val step = (data.size / num)
     var results = new Array[DataVector](num)
     Util.loopUntil(num)(idx => {
       results(idx) = data(step*idx)
-      println("Sample: "+labels(step*idx))
+      //println("Sample: "+labels(step*idx))
 
     })
     results

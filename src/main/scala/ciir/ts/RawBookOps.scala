@@ -2,110 +2,7 @@ package ciir.ts
 
 import gnu.trove.map.hash.TIntIntHashMap
 
-class XMLStream(path: String) {
-  var inputStream = IO.textInputStream(path)
-  def close() { inputStream.close() }
-  
-  def peek: Option[Char] = {
-    assert(inputStream.markSupported())
-    inputStream.mark(1)
-    val theValue = inputStream.read()
-    inputStream.reset()
-    
-    if(theValue == -1) None
-    else Some(theValue.toChar)
-  }
 
-  def done = peek match {
-    case None => true
-    case Some(_) => false
-  }
-
-  def skip() { inputStream.skip(1L) }
-
-  def next(): Option[Char] = {
-    val nextInt = inputStream.read()
-    if(nextInt == -1) {
-      None
-    } else {
-      Some(nextInt.toChar)
-    }
-  }
-
-  def discardUntil(marker: Char) {
-    while(true) {
-      peek match {
-        case None => { return }
-        case Some(c) => {
-          if(c == marker)
-            return
-          skip()
-        }
-      }
-    }
-  }
-  def readUntil(marker: Char) = {
-    var sb = new StringBuilder
-    var done = false
-    while(!done) {
-      peek match {
-        case None => { done = true }
-        case Some(c) => {
-          if(c == marker) {
-            done = true
-          } else {
-            sb += c
-            skip()
-          }
-        }
-      }
-    }
-    sb.result
-  }
-
-  def nextTag: Option[String] = {
-    discardUntil('<')
-    skip()
-
-    if(done) {
-      None
-    } else {
-      val tag = readUntil('>');
-      skip()
-      Some(tag)
-    }
-  }
-  def nextData: String = { readUntil('<') }
-}
-
-object QuickXML {
-  def getValues(path: String, keys: Set[String]): Map[String,String] = {
-    var mb = Map.newBuilder[String,String]
-    var xmlStream = new XMLStream(path)
-
-    try {
-      var done = false
-      while(!done) {
-        xmlStream.nextTag match {
-          case Some(tag) => {
-            if(keys.contains(tag)) {
-              val contents = xmlStream.nextData
-              if(contents.size > 0) {
-                mb += ((tag, contents))
-              }
-              assert(xmlStream.nextTag.getOrElse("") == "/"+tag)
-            }
-          }
-          case None => { done = true }
-        }
-      }
-    } finally {
-      xmlStream.close()
-    }
-
-    mb.result()
-  }
-}
 
 // meant to be run on Internet Archive books on swarm
 // the id->path file is located at /work3/data/oca/text/ids-files.gz
@@ -122,7 +19,7 @@ object CountBooksByDate {
   def mine(i: Int) = ( i % numNodes == nodeID )
 
   def processBook(key: String, path: String): Option[Int] = {
-    val metadata = QuickXML.getValues(path, Set("identifier", "year", "date", "language"))
+    val metadata = XMLStream.simpleGetKeys(path, Set("identifier", "year", "date", "language"))
 
     // reject mismatched metadata
     val mid = metadata.getOrElse("identifier", "")

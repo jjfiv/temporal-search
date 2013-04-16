@@ -177,8 +177,7 @@ object DateExplorer {
   // outputs a CSV to stdout
   def plotTerms(args: Array[String]) {
     if(args.size < 2) {
-      Console.err.println("Needs at least two arguments (Galago input index) and (terms...)")
-      sys.exit(-1)
+      Util.quit("Needs at least two arguments (Galago input index) and (terms...)")
     }
 
     val galagoIndex = args.head
@@ -214,8 +213,7 @@ object DateExplorer {
   def kmeansTerms(args: Array[String]) {
     val curvesFile = args(0)
     if(!IO.fileExists(curvesFile)) {
-      Console.err.println("First argument curvesFile='"+curvesFile+"' should exist.")
-      sys.exit(-1)
+      Util.quit("First argument curvesFile='"+curvesFile+"' should exist.")
     }
 
     var minDate = Int.MaxValue

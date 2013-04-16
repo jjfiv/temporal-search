@@ -40,6 +40,31 @@ object IO {
   def textOutputStream(fn: String) = new BufferedWriter(new OutputStreamWriter(binaryOutputStream(fn)))
   def textInputStream(fn: String) = new BufferedReader(new InputStreamReader(binaryInputStream(fn)))
 
+  def linesFromFile(fn: String, start: Int, count: Int): Array[String] = {
+    val end = start + count
+    
+    var dest = new Array[String](count)
+    var fp = textInputStream(fn)
+    
+    try {
+      var line=0
+      
+      while(line < end) {
+        val text = fp.readLine()
+        if(text == null) {
+          line = end
+        } else if(line >= start) {
+          dest(line - start) = text
+        }
+        line += 1
+      }
+    } finally {
+      fp.close()
+    }
+    
+    dest.filter(_ != null)
+  }
+
   def forLineInFile(fn: String, op: String=>Unit) {
     var fp = textInputStream(fn)
 
@@ -64,3 +89,108 @@ object IO {
   }
 
 }
+
+object XMLStream {
+  def simpleGetKeys(path: String, keys: Set[String]): Map[String,String] = {
+    var mb = Map.newBuilder[String,String]
+    var xmlStream = new XMLStream(path)
+
+    try {
+      var done = false
+      while(!done) {
+        xmlStream.nextTag match {
+          case Some(tag) => {
+            if(keys.contains(tag)) {
+              val contents = xmlStream.nextData
+              if(contents.size > 0) {
+                mb += ((tag, contents))
+              }
+              assert(xmlStream.nextTag.getOrElse("") == "/"+tag)
+            }
+          }
+          case None => { done = true }
+        }
+      }
+    } finally {
+      xmlStream.close()
+    }
+
+    mb.result()
+  }
+}
+class XMLStream(path: String) {
+  var inputStream = IO.textInputStream(path)
+  def close() { inputStream.close() }
+  
+  def peek: Option[Char] = {
+    assert(inputStream.markSupported())
+    inputStream.mark(1)
+    val theValue = inputStream.read()
+    inputStream.reset()
+    
+    if(theValue == -1) None
+    else Some(theValue.toChar)
+  }
+
+  def done = peek match {
+    case None => true
+    case Some(_) => false
+  }
+
+  def skip() { inputStream.skip(1L) }
+
+  def next(): Option[Char] = {
+    val nextInt = inputStream.read()
+    if(nextInt == -1) {
+      None
+    } else {
+      Some(nextInt.toChar)
+    }
+  }
+
+  def discardUntil(marker: Char) {
+    while(true) {
+      peek match {
+        case None => { return }
+        case Some(c) => {
+          if(c == marker)
+            return
+          skip()
+        }
+      }
+    }
+  }
+  def readUntil(marker: Char) = {
+    var sb = new StringBuilder
+    var done = false
+    while(!done) {
+      peek match {
+        case None => { done = true }
+        case Some(c) => {
+          if(c == marker) {
+            done = true
+          } else {
+            sb += c
+            skip()
+          }
+        }
+      }
+    }
+    sb.result
+  }
+
+  def nextTag: Option[String] = {
+    discardUntil('<')
+    skip()
+
+    if(done) {
+      None
+    } else {
+      val tag = readUntil('>');
+      skip()
+      Some(tag)
+    }
+  }
+  def nextData: String = { readUntil('<') }
+}
+

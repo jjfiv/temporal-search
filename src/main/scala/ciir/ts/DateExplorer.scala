@@ -126,11 +126,11 @@ object DateExplorer {
     val inputFile = args(0)
     val outputFile = args(1)
 
-    if(!Util.fileExists(inputFile)) {
+    if(!IO.fileExists(inputFile)) {
       Console.err.println("Tried to build an index from non-existent file \""+inputFile+"\"")
     }
 
-    var fp = Util.binaryOutputStream(outputFile)
+    var fp = IO.binaryOutputStream(outputFile)
     
     var curvesKept = 0
     var curvesTouched = 0
@@ -213,7 +213,7 @@ object DateExplorer {
 
   def kmeansTerms(args: Array[String]) {
     val curvesFile = args(0)
-    if(!Util.fileExists(curvesFile)) {
+    if(!IO.fileExists(curvesFile)) {
       Console.err.println("First argument curvesFile='"+curvesFile+"' should exist.")
       sys.exit(-1)
     }
@@ -221,7 +221,7 @@ object DateExplorer {
     var minDate = Int.MaxValue
     var maxDate = Int.MinValue
     val allCurves = Util.timed("Load curves", {
-      var fp = Util.binaryInputStream(curvesFile)
+      var fp = IO.binaryInputStream(curvesFile)
       var curveBuilder = Array.newBuilder[DateCurve]
 
       try {

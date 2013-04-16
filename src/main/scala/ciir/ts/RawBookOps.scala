@@ -3,7 +3,7 @@ package ciir.ts
 import gnu.trove.map.hash.TIntIntHashMap
 
 class XMLStream(path: String) {
-  var inputStream = Util.textInputStream(path)
+  var inputStream = IO.textInputStream(path)
   def close() { inputStream.close() }
   
   def peek: Option[Char] = {
@@ -168,17 +168,17 @@ object CountBooksByDate {
       assert(nodeID < numNodes && nodeID >= 0)
       Console.err.println("# Swarm Compute Node "+nodeID+"/"+numNodes)
     }
-    var inputStream = Util.textInputStream(idPathFile)
+    var inputStream = IO.textInputStream(idPathFile)
 
     val startTime = System.currentTimeMillis()
 
     var lineNumber = 0
-    Util.forLineInFile(idPathFile, line => {
+    IO.forLineInFile(idPathFile, line => {
       lineNumber += 1
       if(mine(lineNumber)) {
         line.split("\\s") match {
           case Array(key, path) => {
-            val exists = Util.fileExists(path)
+            val exists = IO.fileExists(path)
             if(exists) {
               numBooks += 1
               if(numBooks % 1000 == 0) { println("# "+numBooks) }
@@ -212,11 +212,11 @@ object CountBooksByDate {
     var dateCounts = new TIntIntHashMap()
 
     args.foreach(fileName => {
-      if(!Util.fileExists(fileName)) {
+      if(!IO.fileExists(fileName)) {
         Console.err.println("Expected file we can open as first argument.")
       }
 
-      Util.forLineInFile(fileName, line => {
+      IO.forLineInFile(fileName, line => {
         if(line.charAt(0) != '#') {
           line.split("\\s") match {
             case Array(_, dateStr) => {
@@ -251,11 +251,11 @@ object CountBooksByDate {
     var totalTime = 0
     
     args.foreach(fileName => {
-      if(!Util.fileExists(fileName)) {
+      if(!IO.fileExists(fileName)) {
         Console.err.println("Expected file we can open as first argument.")
       }
       
-      Util.forLineInFile(fileName, line => {
+      IO.forLineInFile(fileName, line => {
         if(line.charAt(0) != '#') {
           line.split("\\s") match {
             case Array(key, value) => {

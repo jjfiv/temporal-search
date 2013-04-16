@@ -26,5 +26,5 @@ if __name__ == '__main__':
 
   if rc != 0:
     print("rc: "+str(rc))
-  print("TOTAL TIME: %1.3fs" % (endTime-startTime))
+  print("COMPILE/RUN TIME: %1.3fs" % (endTime-startTime))
 

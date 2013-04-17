@@ -21,7 +21,7 @@ object App {
     ("dates-build" -> DateExplorer.buildIndex),
     ("dates-kmeans" -> DateExplorer.kmeansTerms),
 
-    ("barrel-gen" -> DupDetect.genBarrels),
+    ("barrel-gen" -> DupDetect.genBarrel),
 
     ("count-books" -> CountBooksByDate.run),
     ("count-books-graph" -> CountBooksByDate.graph),

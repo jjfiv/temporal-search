@@ -100,12 +100,17 @@ object XMLStream {
       while(!done) {
         xmlStream.nextTag match {
           case Some(tag) => {
-            if(keys.contains(tag)) {
+            val tagName = tag.takeWhile(!_.isWhitespace)
+            if(keys.contains(tagName)) {
               val contents = xmlStream.nextData
               if(contents.size > 0) {
                 mb += ((tag, contents))
               }
-              assert(xmlStream.nextTag.getOrElse("") == "/"+tag)
+              // if we've collected all the metadata we need
+              if(mb.result.size == keys.size) {
+                done = true
+              }
+              assert(xmlStream.nextTag.getOrElse("") == "/"+tagName)
             }
           }
           case None => { done = true }

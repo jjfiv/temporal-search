@@ -1,6 +1,11 @@
 package ciir.ts
 
 object MBTEI {
+  def idFromPath(path: String) = {
+    val id = path.stripSuffix("_mbtei.xml.gz")
+    val loc = id.lastIndexOf('/')+1 // -1 or appropriate, -> 0 or appropriate
+    id.substring(loc)
+  }
   def words(path: String): Array[String] = {
     var words = Array.newBuilder[String]
     

@@ -57,6 +57,7 @@ object LCS {
 
 object DupDetect {
   val MaxBookSize = 500000
+  
   private def loadBooks(listFile: String, startIndex: Int, count: Int) = {
     val bookIds = (startIndex until (startIndex+count))
     val books = IO.linesFromFile(listFile, startIndex, count).zip(bookIds)
@@ -79,6 +80,7 @@ object DupDetect {
     }
     parsed
   }
+
   def genBarrel(args: Array[String]) {
     if(args.size != 4) {
       Util.quit("Expected args: listFile startIndex count outFile")
@@ -118,6 +120,7 @@ object DupDetect {
     }
     */
   }
+
   def saveBarrel(outFile: String, docs: Array[HashedDoc]) {
     var fp = IO.binaryOutputStream(outFile);
 
@@ -136,6 +139,7 @@ object DupDetect {
       fp.close()
     }
   }
+
   def readBarrel(inFile: String): Array[HashedDoc] = {
     var fp = IO.binaryInputStream(inFile)
 
@@ -158,8 +162,27 @@ object DupDetect {
     // only if we had an error
     Array()
   }
-  def abs(x: Int) = if(x > 0) x else -x
-  def max(a: Int, b: Int) = if(a < b) b else a
+
+  def compareBarrels(args: Array[String]) {
+    if(args.size != 2) {
+      Util.quit("Expected args: first-barrel second-barrel")
+    }
+    val barrel0 = readBarrel(args(0))
+    val barrel1 = readBarrel(args(1))
+    
+    var duplicates = new gnu.trove.set.hash.TIntHashSet
+
+    barrel0.foreach(bookA => {
+      barrel1.foreach(bookB => {
+        if(!duplicates.contains(bookB.index) && bookB.index != bookA.index) {
+          if(similar(bookA, bookB)) {
+            duplicates.add(bookB.index)
+            println(bookA.index + " " + bookB.index)
+          }
+        }
+      })
+    })
+  }
 
   def similar(docA: HashedDoc, docB: HashedDoc): Boolean = {
     val wordsA = docA.data.toSet
@@ -170,7 +193,7 @@ object DupDetect {
       val uniqueA = wordsA.size
       val uniqueB = wordsB.size
 
-      val maxUnique = max(uniqueA, uniqueB)
+      val maxUnique = Seq(uniqueA, uniqueB).max
 
       Util.fraction(commonWords.size,maxUnique)
     }
@@ -189,7 +212,7 @@ object DupDetect {
     val orderedUniqA = docA.data.filter(commonWords.contains)
     val orderedUniqB = docB.data.filter(commonWords.contains)
 
-    val orderedLength = Array(orderedUniqA.size, orderedUniqB.size, maxLcsLen).min
+    val orderedLength = Seq(orderedUniqA.size, orderedUniqB.size, maxLcsLen).min
     val lcsLen = LCS.run(orderedUniqA, orderedUniqB)
 
     val lcsFrac = Util.fraction(lcsLen, orderedLength)

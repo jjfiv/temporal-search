@@ -1,8 +1,17 @@
 package ciir.ts
 
-case class HashedDoc(val id: String, val index: Int, val data: Array[Int]) {
-  def peek() {
-    println(index+":"+id +": "+data.take(10).map(Util.hex(_)).mkString(", "))
+case class HashedDoc(val index: Int, val data: Array[Int]) {
+  override def toString = {
+    index+":"+data.take(10).map(Util.hex(_)).mkString(", ")
+  }
+  def ==(other: HashedDoc): Boolean = {
+    if(index != other.index || data.size != other.data.size) {
+      return false
+    }
+    data.zip(other.data).foreach {
+      case (x,y) => if (x != y) return false
+    }
+    true
   }
 }
 
@@ -57,14 +66,13 @@ object DupDetect {
     }
 
     var parsed = books.flatMap {
-      case (bookPath, id) => {
+      case (bookPath, idx) => {
         if(IO.fileExists(bookPath)) {
           val hashed = MBTEI.words(bookPath).map(_.hashCode)
-          val bookID = MBTEI.idFromPath(bookPath)
-          println(hashed.size)
-          Some(HashedDoc(bookID, id, hashed))
+          //val bookID = MBTEI.idFromPath(bookPath)
+          Some(HashedDoc(idx, hashed))
         } else {
-          Console.err.println("# couldn't find book <"+bookPath+">")
+          Console.err.println("# couldn't find book <"+bookPath.trim+">")
           None
         }
       }
@@ -72,9 +80,10 @@ object DupDetect {
     parsed
   }
   def genBarrel(args: Array[String]) {
-    if(args.size != 3) {
-      Util.quit("Expected args: listFile startIndex count")
+    if(args.size != 4) {
+      Util.quit("Expected args: listFile startIndex count outFile")
     }
+    val outFile = args(3)
     // read each book
     val books = loadBooks(args(0), args(1).toInt, args(2).toInt)
     
@@ -91,7 +100,7 @@ object DupDetect {
           val bookB = books(idB)
           if(!duplicates.contains(bookB.index)) {
             if(similar(bookA, bookB)) {
-              println("# duplicate: "+(bookA.id, bookB.id))
+              println("# duplicate: "+(bookA.index, bookB.index))
               duplicates.add(bookB.index)
             }
           }
@@ -100,12 +109,54 @@ object DupDetect {
     }
 
     val uniqueDocuments = books.filter(bk => !duplicates.contains(bk.index))
+    saveBarrel(outFile, uniqueDocuments)
     
-    uniqueDocuments.foreach {
-      case HashedDoc(id, _, data) => {
-        println(id, data.take(1))
-      }
+    /*
+    val copy = readBarrel(outFile)
+    uniqueDocuments.zip(copy).foreach {
+      case (da,db) => assert(da == db)
     }
+    */
+  }
+  def saveBarrel(outFile: String, docs: Array[HashedDoc]) {
+    var fp = IO.binaryOutputStream(outFile);
+
+    try {
+      // num documents
+      fp.writeInt(docs.size)
+      
+      docs.foreach {
+        case HashedDoc(idx, data) => {
+          fp.writeInt(idx)
+          fp.writeInt(data.size)
+          data.foreach(fp.writeInt)
+        }
+      }
+    } finally {
+      fp.close()
+    }
+  }
+  def readBarrel(inFile: String): Array[HashedDoc] = {
+    var fp = IO.binaryInputStream(inFile)
+
+    try {
+      val numDocs = fp.readInt
+      var docs = new Array[HashedDoc](numDocs)
+
+      docs.indices.foreach(idx => {
+        val docIdx = fp.readInt
+        var data = new Array[Int](fp.readInt)
+        data.indices.foreach(data(_) = fp.readInt)
+        docs(idx) = HashedDoc(docIdx, data)
+      })
+      return docs
+
+    } finally {
+      fp.close()
+    }
+    
+    // only if we had an error
+    Array()
   }
   def abs(x: Int) = if(x > 0) x else -x
   def max(a: Int, b: Int) = if(a < b) b else a
@@ -142,8 +193,6 @@ object DupDetect {
     val lcsLen = LCS.run(orderedUniqA, orderedUniqB)
 
     val lcsFrac = Util.fraction(lcsLen, orderedLength)
-
-    println (docA.id, docB.id, overlap, lcsFrac)
 
     lcsFrac > .50
   }

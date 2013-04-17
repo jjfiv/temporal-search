@@ -123,6 +123,7 @@ object XMLStream {
     mb.result()
   }
 }
+
 class XMLStream(path: String) {
   var inputStream = IO.textInputStream(path)
   def close() { inputStream.close() }

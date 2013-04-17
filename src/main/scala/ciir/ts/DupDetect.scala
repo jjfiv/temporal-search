@@ -140,21 +140,26 @@ object DupDetect {
     }
   }
 
+  private def readDocument(fp: java.io.DataInputStream) = {
+    val docIdx = fp.readInt
+    val docLen = fp.readInt
+    var data = new Array[Int](docLen)
+    data.indices.foreach {
+      data(_) = fp.readInt
+    }
+    HashedDoc(docIdx, data)
+  }
+
   def readBarrel(inFile: String): Array[HashedDoc] = {
     var fp = IO.binaryInputStream(inFile)
 
     try {
       val numDocs = fp.readInt
       var docs = new Array[HashedDoc](numDocs)
-
-      docs.indices.foreach(idx => {
-        val docIdx = fp.readInt
-        var data = new Array[Int](fp.readInt)
-        data.indices.foreach(data(_) = fp.readInt)
-        docs(idx) = HashedDoc(docIdx, data)
-      })
+      docs.indices.foreach {
+        docs(_) = readDocument(fp)
+      }
       return docs
-
     } finally {
       fp.close()
     }
@@ -167,21 +172,30 @@ object DupDetect {
     if(args.size != 2) {
       Util.quit("Expected args: first-barrel second-barrel")
     }
-    val barrel0 = readBarrel(args(0))
+    val streamingBarrel = IO.binaryInputStream(args(0))
     val barrel1 = readBarrel(args(1))
     
     var duplicates = new gnu.trove.set.hash.TIntHashSet
 
-    barrel0.foreach(bookA => {
-      barrel1.foreach(bookB => {
-        if(!duplicates.contains(bookB.index) && bookB.index != bookA.index) {
-          if(similar(bookA, bookB)) {
-            duplicates.add(bookB.index)
-            println(bookA.index + " " + bookB.index)
+    try {
+      val numDocs = streamingBarrel.readInt
+
+      // only load one book at a time from one document
+      Util.loopUntil(numDocs)(nvm => {
+        val bookA = readDocument(streamingBarrel)
+        
+        barrel1.foreach(bookB => {
+          if(!duplicates.contains(bookB.index) && bookA.index != bookB.index) {
+            if(similar(bookA, bookB)) {
+              duplicates.add(bookB.index)
+              println(bookA.index + " " + bookB.index)
+            }
           }
-        }
+        })
       })
-    })
+    } finally {
+      streamingBarrel.close()
+    }
   }
 
   def similar(docA: HashedDoc, docB: HashedDoc): Boolean = {

@@ -31,10 +31,9 @@ object CountBooksByDate {
       case None => { noLanguage += 1; }
       case Some(lang) => {
         val ez = lang.trim.toLowerCase
-        if(ez == "") {
+        if(ez.isEmpty) {
           noLanguage += 1
         } else if(!ez.startsWith("eng")) {
-          Console.err.println("# "+lang)
           nonEnglish += 1
         }
       }
@@ -56,6 +55,9 @@ object CountBooksByDate {
     Some(year)
   }
 
+  val MetadataExt = "_meta.xml.bz2"
+  val BookExt = "_mbtei.xml.gz"
+
   def run(args: Array[String]) {
     val idPathFile = args(0)
     if(args.size > 1 && args(1) == "swarm") {
@@ -75,13 +77,16 @@ object CountBooksByDate {
       if(mine(lineNumber)) {
         line.split("\\s") match {
           case Array(key, path) => {
-            val exists = IO.fileExists(path)
-            if(exists) {
+            val metadataExists = IO.fileExists(path)
+            val bookPath = path.dropRight(MetadataExt.size)+BookExt
+            val bookExists = IO.fileExists(bookPath)
+            
+            if(metadataExists && bookExists && path.endsWith(MetadataExt)) {
               numBooks += 1
               if(numBooks % 1000 == 0) { println("# "+numBooks) }
               processBook(key,path) match {
                 case Some(yr) => {
-                  println(key + " "+yr)
+                  println(key+" "+bookPath+" "+yr)
                 }
                 case None => { }
               }

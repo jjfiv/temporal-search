@@ -13,6 +13,7 @@
     ]
   },
   "galagoJobDir" : "/tmp/galago",
+  "deleteJobDir" : false,
   "port":6803
 }
 

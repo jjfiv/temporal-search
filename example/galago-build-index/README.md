@@ -40,3 +40,8 @@ Using our friendly launcher tool ``scripts/run.py``, we can do things to this ne
     ./scripts/run.py inspect example/galago-build-index/output
 
 
+Running again
+---
+
+With the flag ``deleteJobDir=false``, you will have to manually remove the ``galagoJobDir`` after running, but this allows better diagnosing of errors.
+

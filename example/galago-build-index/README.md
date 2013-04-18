@@ -27,9 +27,9 @@ The books specified in ``input.list`` are specified with absolute paths on my ma
 Building the index
 ---
 
-Then, since we need to have the contrib sources on our classpath while building the index, the command to build the index (from the root of this git repo) is:
+Then, we can use the temporal-tools App to launch the galago it is compiled against for us. The command to build the index (from the root of this git repo) is:
 
-    ${galago_root}/contrib/target/appassembler/bin/galago build example/galago-build-index/conf.json
+    scripts/run.py invoke-galago build example/galago-build-index/conf.json
 
 
 Checking the result
@@ -37,7 +37,11 @@ Checking the result
 
 Using our friendly launcher tool ``scripts/run.py``, we can do things to this new index.
 
-    ./scripts/run.py inspect example/galago-build-index/output
+    scripts/run.py inspect example/galago-build-index/output
+
+Or using galago directly:
+
+    scripts/run.py invoke-galago dump-index example/galago-build-index/output/names
 
 
 Running again

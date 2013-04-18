@@ -27,7 +27,10 @@ object App {
     ("count-books" -> CountBooksByDate.run),
     ("count-books-graph" -> CountBooksByDate.graph),
     ("count-books-stat" -> CountBooksByDate.stats),
-    ("count-books-by-date" -> CountBooksByDate.dateLists)
+    ("count-books-by-date" -> CountBooksByDate.dateLists),
+
+    // invoke the galago main()
+    ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)
     )
 
   def printAvailable() {
@@ -36,7 +39,6 @@ object App {
   }
 
   def main(args: Array[String]) {
-    println(classOf[ciir.proteus.galago.parse.MBTEIBookParser].getName)
     if(args.size == 0) {
       println("Expected at least one argument to determine task.")
       printAvailable()

@@ -10,6 +10,10 @@ usage
 
 where task-name is one of the available:
 
+ - `invoke-galago` gets you to the CLI of the [Galago][galago] application itself
+   - `invoke-galago build` builds an index
+   - `invoke-galago dump-index` dumps an index data to CSV
+   - `invoke-galago args...` etc
  - `barrel-gen` and `barrel-cmp` builds and compares document lists (barrels) for duplication detection based on unpublished work by [zeki](http://cs.umass.edu/~zeki)
  - `term-plot-dates` plot dates runs a set of queries against a [Galago][galago] index and creates a csv containing the date information
  - `dates-build` takes a [Galago][galago] Index and caches date curves for each term

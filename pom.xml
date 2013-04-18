@@ -109,7 +109,7 @@
             <manifest>
               <classpathPrefix>lib/</classpathPrefix>
               <addClasspath>true</addClasspath>
-              <mainClass>ciir.ts.App</mainClass>
+              <mainClass>${mainClass}</mainClass>
             </manifest>
           </archive>
         </configuration>

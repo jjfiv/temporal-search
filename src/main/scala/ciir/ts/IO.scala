@@ -40,6 +40,12 @@ object IO {
   def textOutputStream(fn: String) = new PrintWriter(new OutputStreamWriter(binaryOutputStream(fn)))
   def textInputStream(fn: String) = new BufferedReader(new InputStreamReader(binaryInputStream(fn)))
 
+  def fileLines(fn: String): Array[String] = {
+    var lb = Array.newBuilder[String]
+    forLineInFile(fn, line => lb += line)
+    lb.result
+  }
+
   def linesFromFile(fn: String, start: Int, count: Int): Array[String] = {
     val end = start + count
     
@@ -103,7 +109,7 @@ object XMLStream {
             val tagName = tag.takeWhile(!_.isWhitespace)
             if(keys.contains(tagName)) {
               val contents = xmlStream.nextData
-              if(contents.size > 0) {
+              if(contents.nonEmpty) {
                 mb += ((tag, contents))
               }
               // if we've collected all the metadata we need

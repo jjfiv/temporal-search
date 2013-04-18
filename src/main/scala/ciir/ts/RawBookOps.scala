@@ -110,95 +110,16 @@ object CountBooksByDate {
     Console.err.println("time " + (endTime - startTime))
   }
 
-  def graph(args: Array[String]) {
-    var dateCounts = new TIntIntHashMap()
-
-    args.foreach(fileName => {
-      if(!IO.fileExists(fileName)) {
-        Console.err.println("Expected file we can open as first argument.")
-      }
-
-      IO.forLineInFile(fileName, line => {
-        if(line.charAt(0) != '#') {
-          line.split("\\s") match {
-            case Array(_, dateStr) => {
-              val date = dateStr.toInt
-              
-              // gutenberg's printing press, current date
-              if(date >= 1436 && date <= 2013) {
-                dateCounts.adjustOrPutValue(date, 1, 1)
-              }
-            }
-            case _ => { }
-          }
-        }
-      })
-    })
-    
-    dateCounts.keys.sorted.foreach(date => {
-      val counts = dateCounts.get(date)
-      if(counts >= 30) {
-        println(date+","+counts)
-      }
-    })
-  }
-
-  def stats(args: Array[String]) {
-    var numBooks = 0
-    var nonExistent = 0
-    var badMetadata = 0
-    var noLanguage = 0
-    var nonEnglish = 0
-    var noDate = 0
-    var totalTime = 0
-    
-    args.foreach(fileName => {
-      if(!IO.fileExists(fileName)) {
-        Console.err.println("Expected file we can open as first argument.")
-      }
-      
-      IO.forLineInFile(fileName, line => {
-        if(line.charAt(0) != '#') {
-          line.split("\\s") match {
-            case Array(key, value) => {
-              val count = value.toInt
-              key match {
-                case "numBooks" => numBooks += count
-                case "nonExistent" => nonExistent += count
-                case "badMetadata" => badMetadata += count
-                case "noLanguage" => noLanguage += count
-                case "nonEnglish" => nonEnglish += count
-                case "noDate" => noDate += count
-                case "time" => totalTime += count
-                case _ => { }
-              }
-            }
-            case _ => { }
-          }
-        }
-      })
-    })
-    
-    println("numBooks " + numBooks)
-    println("nonExistent " + nonExistent)
-    println("badMetadata " + badMetadata)
-    println("noLanguage " + noLanguage)
-    println("nonEnglish " + nonEnglish)
-    println("noDate " + noDate)
-    println("time " + totalTime+"ms")
-  }
-
   def dateLists(args: Array[String]) {
     if(args.size < 2) {
-      Util.quit("Expected arguments: outDir inputFiles...")
+      Util.quit("Expected arguments: outDir idPathDateList")
     }
-    val outDir = args.head
-    val inputFiles = args.tail
-    
-    // check input files
-    val notFiles = inputFiles.filter(!IO.fileExists(_))
-    if(notFiles.size > 0) {
-      Util.quit("Bad file arguments: "+notFiles.mkString(","))
+
+    val outDir = args(0)
+    val inputFile = args(1)
+
+    if(!IO.fileExists(inputFile)) {
+      Util.quit("No such file: "+inputFile)
     }
 
     // make output directory
@@ -208,23 +129,22 @@ object CountBooksByDate {
     }
 
     var outStreams = collection.mutable.Map[Int,java.io.PrintWriter]()
-    inputFiles.foreach(fileName => {
-      IO.forLineInFile(fileName, line => {
-        if(!line.startsWith("java -jar")) {
-          line.trim.split("\\s") match {
-            case Array(id, yearText) => {
-              val year = yearText.toInt
-              if(year >= 1820 && year <= 1920) {
-                if(!outStreams.contains(year)) {
-                  outStreams(year) = IO.textOutputStream(outDir+"/"+yearText+".txt")
-                }
-                outStreams(year).println(id)
-              }
+
+    IO.forLineInFile(inputFile, line => {
+      line.trim.split("\\s") match {
+        case Array(_, path, yearText) => {
+          // don't much care for id if we have the path itself
+          val year = yearText.toInt
+          if(year >= 1820 && year <= 1920) {
+            if(!outStreams.contains(year)) {
+              outStreams(year) = IO.textOutputStream(outDir+"/"+yearText+".list")
             }
+            outStreams(year).println(path)
           }
         }
-      })
+      }
     })
+
     outStreams.foreach {
       case (_, fp) => fp.close()
     }

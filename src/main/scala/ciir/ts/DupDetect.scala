@@ -15,19 +15,34 @@ sealed case class HashedDoc(val index: Int, val data: Array[Int]) {
   }
 }
 
-object LCS {
-  val ComputeLimit = 2000
-  def compare(a: String, b: String) = {
-    def convert(x: String): Array[Int] = { 
-      x.filter(!_.isLetterOrDigit).map(_.toLowerCase.toInt).toArray
+object MBTEIDoc {
+  def read(path: String): MBTEIDoc = {
+    if(!IO.fileExists(path)) {
+      return MBTEIDoc("", "", Array())
+    }
+    val metadata = XMLStream.simpleGetKeys(path, Set("title"))
+    
+    //give up on empty titles
+    val title = metadata.getOrElse("title", "").trim.toLowerCase
+    if(title.isEmpty) {
+      return MBTEIDoc("", "", Array())
     }
 
-    val arrA = convert(a)
-    val arrB = convert(b)
+    val data = MBTEI.words(path).map(_.hashCode)
 
-    run(convert(a), convert(b))
+    MBTEIDoc(path, title, data)
   }
+}
 
+sealed case class MBTEIDoc(val path: String, val title: String, val data: Array[Int]) {
+  def size = data.size
+  def similar(other: MBTEIDoc): Boolean = {
+    title == other.title || DupDetect.similar(data, other.data)
+  }
+}
+
+object LCS {
+  val ComputeLimit = 2000
   // http://en.wikipedia.org/wiki/Longest_common_subsequence_problem 
   def run(a: Array[Int], b: Array[Int]): Int = {
     def max(a: Int, b: Int) = if(a < b) b else a
@@ -56,7 +71,12 @@ object LCS {
 }
 
 object DupDetect {
-  val MaxBookSize = 500000
+  def readDocument(idx: Int, path: String): HashedDoc = {
+    if(!IO.fileExists(path)) {
+      Console.err.println("file "+path+" does not exist!")
+    }
+    HashedDoc(idx, MBTEI.words(path).map(_.hashCode))
+  }
   
   private def loadBooks(listFile: String, startIndex: Int, count: Int) = {
     val bookIds = (startIndex until (startIndex+count))
@@ -69,9 +89,7 @@ object DupDetect {
     var parsed = books.flatMap {
       case (bookPath, idx) => {
         if(IO.fileExists(bookPath)) {
-          val hashed = MBTEI.words(bookPath).map(_.hashCode)
-          //val bookID = MBTEI.idFromPath(bookPath)
-          Some(HashedDoc(idx, hashed))
+          Some(readDocument(idx, bookPath))
         } else {
           Console.err.println("# couldn't find book <"+bookPath.trim+">")
           None
@@ -81,47 +99,72 @@ object DupDetect {
     parsed
   }
 
-  def genBarrel(args: Array[String]) {
-    if(args.size != 4) {
-      Util.quit("Expected args: listFile startIndex count outFile")
-    }
-    val outFile = args(3)
-    // read each book
-    val books = loadBooks(args(0), args(1).toInt, args(2).toInt)
-    
-    if(books.size == 0) {
-      Util.quit("Couldn't find any books")
-    }
-    
-    var duplicates = new gnu.trove.set.hash.TIntHashSet
+  val RandomSeed = 0xdeadbeef
 
-    for(idA <- 0 until (books.size - 1)) {
-      val bookA = books(idA)
-      if(!duplicates.contains(bookA.index)) {
-        for(idB <- (idA + 1) until books.size) {
-          val bookB = books(idB)
-          if(!duplicates.contains(bookB.index)) {
-            if(similar(bookA, bookB)) {
-              println("# duplicate: "+(bookA.index, bookB.index))
-              duplicates.add(bookB.index)
-            }
-          }
-        }
+  def sampleBooks(args: Array[String]) {
+    if(args.size != 2) {
+      Util.quit("expected arguments: inputList targetNum")
+    }
+
+    // shuffle the input list pseudorandomly
+    val inputList = {
+      var rand = new util.Random(RandomSeed)
+      rand.shuffle(IO.fileLines(args(0)).toSeq)
+    }
+    val targetNum = args(1).toInt
+    val outList = args(0)+".dedup"
+    val outBarrel = args(0)+".barrel.gz"
+
+
+
+    if(inputList.isEmpty) {
+      Util.quit("no documents in inputList")
+    }
+
+    var uniqueDocuments = new collection.mutable.ArrayBuffer[MBTEIDoc]
+
+    uniqueDocuments += MBTEIDoc.read(inputList(0))
+    var curDocIdx = 1
+    var tossed = 0
+    
+    while(curDocIdx < inputList.size && uniqueDocuments.size < targetNum) {
+      val curDoc = MBTEIDoc.read(inputList(curDocIdx))
+
+
+      if(curDocIdx % 100 == 0) {
+        println("# "+curDocIdx+"/"+targetNum)
       }
+
+      // invalid documents become zero-length
+      if(curDoc.size != 0) {
+
+        // for all uniqueDocuments so far 
+        // if there does not exist a document similar to this new one, keep it
+        if(!uniqueDocuments.exists(_.similar(curDoc))) {
+          uniqueDocuments += curDoc
+        } else {
+          tossed += 1
+        }
+      
+      }
+      curDocIdx+=1
     }
 
-    val uniqueDocuments = books.filter(bk => !duplicates.contains(bk.index))
-    saveBarrel(outFile, uniqueDocuments)
-    
-    /*
-    val copy = readBarrel(outFile)
-    uniqueDocuments.zip(copy).foreach {
-      case (da,db) => assert(da == db)
+    Console.err.println("# kept "+uniqueDocuments.size+" documents")
+    Console.err.println("# gave up on "+tossed+" documents")
+
+    val paths = uniqueDocuments.map(_.path)
+    val hdocs = uniqueDocuments.zipWithIndex.map {
+      case (doc, idx) => HashedDoc(idx, doc.data)
     }
-    */
+
+    IO.printToFile(outList, fp => {
+      paths.foreach(fp.println(_))
+    })
+    saveBarrel(outBarrel, hdocs)
   }
 
-  private def saveBarrel(outFile: String, docs: Array[HashedDoc]) {
+  private def saveBarrel(outFile: String, docs: IndexedSeq[HashedDoc]) {
     var fp = IO.binaryOutputStream(outFile);
 
     try {
@@ -140,7 +183,7 @@ object DupDetect {
     }
   }
 
-  private def readDocument(fp: java.io.DataInputStream) = {
+  private def readDocFromBarrel(fp: java.io.DataInputStream) = {
     val docIdx = fp.readInt
     val docLen = fp.readInt
     var data = new Array[Int](docLen)
@@ -157,7 +200,7 @@ object DupDetect {
       val numDocs = fp.readInt
       var docs = new Array[HashedDoc](numDocs)
       docs.indices.foreach {
-        docs(_) = readDocument(fp)
+        docs(_) = readDocFromBarrel(fp)
       }
       return docs
     } finally {
@@ -174,6 +217,15 @@ object DupDetect {
     }
     val streamingBarrel = IO.binaryInputStream(args(0))
     val barrel1 = readBarrel(args(1))
+
+    val listBName = {
+      val name = args(1)
+      if(name.endsWith(".barrel.gz")) {
+        name.substring(0,name.lastIndexOf(".barrel.gz"))
+      } else {
+        name
+      }
+    }
     
     var duplicates = new gnu.trove.set.hash.TIntHashSet
 
@@ -182,13 +234,14 @@ object DupDetect {
 
       // only load one book at a time from one document
       Util.loopUntil(numDocs)(nvm => {
-        val bookA = readDocument(streamingBarrel)
+        val bookA = readDocFromBarrel(streamingBarrel)
         
         barrel1.foreach(bookB => {
-          if(!duplicates.contains(bookB.index) && bookA.index != bookB.index) {
-            if(similar(bookA, bookB)) {
+          if(!duplicates.contains(bookB.index)) {
+            if(similar(bookA.data, bookB.data)) {
               duplicates.add(bookB.index)
-              println(bookA.index + " " + bookB.index)
+              // output barrel name and 
+              println(listBName+" "+bookB.index)
             }
           }
         })
@@ -196,11 +249,16 @@ object DupDetect {
     } finally {
       streamingBarrel.close()
     }
+
   }
 
-  private def similar(docA: HashedDoc, docB: HashedDoc): Boolean = {
-    val wordsA = docA.data.toSet
-    val wordsB = docB.data.toSet
+  def similar(docA: Array[Int], docB: Array[Int]): Boolean = {
+    // if the difference in their sizes is greater than half of the smaller document; they're definitely not the same
+    if( (math.abs(docA.size - docB.size)/math.min(docA.size, docB.size)) > .5) {
+      return false
+    }
+    val wordsA = docA.toSet
+    val wordsB = docB.toSet
     val commonWords = wordsA intersect wordsB
 
     val overlap = {
@@ -223,8 +281,8 @@ object DupDetect {
     
     val maxLcsLen = LCS.ComputeLimit
 
-    val orderedUniqA = docA.data.filter(commonWords.contains)
-    val orderedUniqB = docB.data.filter(commonWords.contains)
+    val orderedUniqA = docA.filter(commonWords.contains)
+    val orderedUniqB = docB.filter(commonWords.contains)
 
     val orderedLength = Seq(orderedUniqA.size, orderedUniqB.size, maxLcsLen).min
     val lcsLen = LCS.run(orderedUniqA, orderedUniqB)

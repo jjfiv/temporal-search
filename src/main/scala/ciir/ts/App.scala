@@ -21,12 +21,10 @@ object App {
     ("dates-build" -> DateExplorer.buildIndex),
     ("dates-kmeans" -> DateExplorer.kmeansTerms),
 
-    ("barrel-gen" -> DupDetect.genBarrel),
     ("barrel-cmp" -> DupDetect.compareBarrels),
+    ("sample-book-list" -> DupDetect.sampleBooks),
 
     ("count-books" -> CountBooksByDate.run),
-    ("count-books-graph" -> CountBooksByDate.graph),
-    ("count-books-stat" -> CountBooksByDate.stats),
     ("count-books-by-date" -> CountBooksByDate.dateLists),
 
     // invoke the galago main()

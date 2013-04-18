@@ -1,11 +1,6 @@
 package ciir.ts
 
 object MBTEI {
-  def idFromPath(path: String) = {
-    val id = path.stripSuffix("_mbtei.xml.gz")
-    val loc = id.lastIndexOf('/')+1 // -1 or appropriate, -> 0 or appropriate
-    id.substring(loc)
-  }
   def words(path: String): Array[String] = {
     var words = Array.newBuilder[String]
     
@@ -13,10 +8,14 @@ object MBTEI {
     try {
       var done = false
       while(!done) {
-        reader.next() match {
+        reader.nextWord() match {
           case None => { done = true }
           case Some(str) => { words += str }
         }
+      }
+    } catch {
+      case eof: java.io.EOFException => {
+        return Array()
       }
     } finally {
       reader.close()
@@ -68,7 +67,7 @@ class MBTEIWordReader(path: String) {
     }
     sb.result
   }
-  def next(): Option[String] = {
+  def nextWord(): Option[String] = {
     // looks for <w.*> and saves contents
     while(true) {
       skipUntil('<')

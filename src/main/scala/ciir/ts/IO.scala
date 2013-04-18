@@ -37,7 +37,7 @@ object IO {
       new DataInputStream(fis)
     }
   }
-  def textOutputStream(fn: String) = new BufferedWriter(new OutputStreamWriter(binaryOutputStream(fn)))
+  def textOutputStream(fn: String) = new PrintWriter(new OutputStreamWriter(binaryOutputStream(fn)))
   def textInputStream(fn: String) = new BufferedReader(new InputStreamReader(binaryInputStream(fn)))
 
   def linesFromFile(fn: String, start: Int, count: Int): Array[String] = {

@@ -1,6 +1,6 @@
 package ciir.ts
 
-case class HashedDoc(val index: Int, val data: Array[Int]) {
+sealed case class HashedDoc(val index: Int, val data: Array[Int]) {
   override def toString = {
     index+":"+data.take(10).map(Util.hex(_)).mkString(", ")
   }
@@ -121,7 +121,7 @@ object DupDetect {
     */
   }
 
-  def saveBarrel(outFile: String, docs: Array[HashedDoc]) {
+  private def saveBarrel(outFile: String, docs: Array[HashedDoc]) {
     var fp = IO.binaryOutputStream(outFile);
 
     try {
@@ -150,7 +150,7 @@ object DupDetect {
     HashedDoc(docIdx, data)
   }
 
-  def readBarrel(inFile: String): Array[HashedDoc] = {
+  private def readBarrel(inFile: String): Array[HashedDoc] = {
     var fp = IO.binaryInputStream(inFile)
 
     try {
@@ -198,7 +198,7 @@ object DupDetect {
     }
   }
 
-  def similar(docA: HashedDoc, docB: HashedDoc): Boolean = {
+  private def similar(docA: HashedDoc, docB: HashedDoc): Boolean = {
     val wordsA = docA.data.toSet
     val wordsB = docB.data.toSet
     val commonWords = wordsA intersect wordsB

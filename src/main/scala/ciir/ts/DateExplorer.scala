@@ -186,6 +186,7 @@ object DateExplorer {
     val retrieval = GalagoIndexUtil.retrievalFromPath(galagoIndex)
     val dateInfo = new LocalDateInfo(retrieval)
 
+    //val numDocs = 4000; 
     val numDocs = retrieval.getCollectionStatistics("#lengths:document:part=lengths()").documentCount.toInt
 
     val results = terms.map(term => {
@@ -266,7 +267,7 @@ object DateExplorer {
     println("# Done clustering")
     clusters.zipWithIndex.foreach {
       case (contents, i) => {
-        val topIndices = contents.sortBy(allCurves(_).weight).takeRight(10)
+        val topIndices = contents.sortBy(allCurves(_).weight).takeRight(30)
         val topTerms = topIndices.map(allCurves(_).term)
         println("Cluster "+i+": "+topTerms.mkString(", "))
       }

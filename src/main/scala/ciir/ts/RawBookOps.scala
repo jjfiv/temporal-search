@@ -182,5 +182,47 @@ object CountBooksByDate {
     println("noDate " + noDate)
     println("time " + totalTime+"ms")
   }
+
+  def dateLists(args: Array[String]) {
+    if(args.size < 2) {
+      Util.quit("Expected arguments: outDir inputFiles...")
+    }
+    val outDir = args.head
+    val inputFiles = args.tail
+    
+    // check input files
+    val notFiles = inputFiles.filter(!IO.fileExists(_))
+    if(notFiles.size > 0) {
+      Util.quit("Bad file arguments: "+notFiles.mkString(","))
+    }
+
+    // make output directory
+    var outDirFile = new java.io.File(outDir)
+    if(!outDirFile.exists()) {
+      outDirFile.mkdirs()
+    }
+
+    var outStreams = collection.mutable.Map[Int,java.io.PrintWriter]()
+    inputFiles.foreach(fileName => {
+      IO.forLineInFile(fileName, line => {
+        if(!line.startsWith("java -jar")) {
+          line.trim.split("\\s") match {
+            case Array(id, yearText) => {
+              val year = yearText.toInt
+              if(year >= 1820 && year <= 1920) {
+                if(!outStreams.contains(year)) {
+                  outStreams(year) = IO.textOutputStream(outDir+"/"+yearText+".txt")
+                }
+                outStreams(year).println(id)
+              }
+            }
+          }
+        }
+      })
+    })
+    outStreams.foreach {
+      case (_, fp) => fp.close()
+    }
+  }
 }
 

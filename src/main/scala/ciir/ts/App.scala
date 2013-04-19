@@ -12,6 +12,29 @@ object IndexInspector {
   }
 }
 
+object GUISearch extends swing.SimpleSwingApplication {
+  import swing._
+  def top = new MainFrame {
+    title = "GUISearch"
+
+    contents = new SplitPane(Orientation.Vertical) {
+      topComponent = new FlowPanel {
+        contents += new Label {
+          text="GUI Search!"
+        }
+      }
+      bottomComponent = new FlowPanel {
+        contents += new Label {
+          text="Bottom Panel"
+        }
+      }
+    }
+
+    centerOnScreen()
+  }
+  def launch(args: Array[String]) { main(Array()) }
+}
+
 object App {
   var actions = Map[String,Array[String]=>Unit](
     ("inspect" -> IndexInspector.run),
@@ -26,6 +49,8 @@ object App {
 
     ("count-books" -> CountBooksByDate.run),
     ("count-books-by-date" -> CountBooksByDate.dateLists),
+
+    ("gui-search" -> GUISearch.launch),
 
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)

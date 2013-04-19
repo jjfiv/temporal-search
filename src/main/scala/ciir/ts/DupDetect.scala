@@ -131,8 +131,8 @@ object DupDetect {
       val curDoc = MBTEIDoc.read(inputList(curDocIdx))
 
 
-      if(curDocIdx % 100 == 0) {
-        println("# "+curDocIdx+"/"+targetNum)
+      if(curDocIdx % 10 == 0) {
+        println("# "+curDocIdx+" "+uniqueDocuments.size+"/"+targetNum)
       }
 
       // invalid documents become zero-length

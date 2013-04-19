@@ -122,6 +122,8 @@ object XMLStream {
           case None => { done = true }
         }
       }
+    } catch {
+      case eof: java.io.EOFException => { }
     } finally {
       xmlStream.close()
     }

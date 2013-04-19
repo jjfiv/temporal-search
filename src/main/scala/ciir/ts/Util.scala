@@ -25,7 +25,7 @@ object Util {
       i+=1
     }
   }
-  def hex(num: Int) = String.format("0x%08x", new Integer(num))
+  def hex(num: Int) = "0x%08x".format(num)
   def quit(msg: String, code: Int = -1) {
     Console.err.println(msg)
     sys.exit(code)

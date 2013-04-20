@@ -27,6 +27,8 @@ object App {
     ("count-books" -> CountBooksByDate.run),
     ("count-books-by-date" -> CountBooksByDate.dateLists),
 
+    // build a memory index
+    ("build-mem-index" -> BuildOrderedIndex.run),
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)
     )

@@ -11,6 +11,13 @@ object IO {
     else new File(fileName).exists()
   }
 
+  def requireDirectory(outDir: String) {
+    val file = new File(outDir)
+    if(!file.exists()) file.mkdirs()
+    if(!file.isDirectory)
+      Util.quit("couldn't get \""+outDir+"\" as a directory... it's a file?")
+  }
+
   def binaryOutputStream(fn: String): DataOutputStream = {
     val fis = new FileOutputStream(fn)
     

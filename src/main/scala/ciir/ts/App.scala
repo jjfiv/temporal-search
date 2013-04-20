@@ -27,10 +27,9 @@ object App {
     ("count-books" -> CountBooksByDate.run),
     ("count-books-by-date" -> CountBooksByDate.dateLists),
 
-    // build a memory index
-    // separated for memory concerns
-    ("build-ordered-index" -> BuildOrderedIndex.makeIndex),
-    ("build-ordered-corpus" -> BuildOrderedIndex.makeCorpus),
+    // build a part of a memory index
+    // separated for memory concerns; preserves input list order
+    ("build-index-part" -> BuildOrderedIndex.makeIndexPart),
 
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)

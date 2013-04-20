@@ -99,9 +99,10 @@ object IO {
 object XMLStream {
   def simpleGetKeys(path: String, keys: Set[String]): Map[String,String] = {
     var mb = Map.newBuilder[String,String]
-    var xmlStream = new XMLStream(path)
+    var xmlStream: XMLStream = null
 
     try {
+      xmlStream = new XMLStream(path)
       var done = false
       while(!done) {
         xmlStream.nextTag match {
@@ -122,8 +123,14 @@ object XMLStream {
           case None => { done = true }
         }
       }
+    } catch {
+      case eof: java.io.EOFException => {
+        Console.err.println("# ignore EOFException - bad metadata read")
+      }
     } finally {
-      xmlStream.close()
+      if(xmlStream != null) {
+        xmlStream.close()
+      }
     }
 
     mb.result()
@@ -144,11 +151,7 @@ class XMLStream(path: String) {
     else Some(theValue.toChar)
   }
 
-  def done = peek match {
-    case None => true
-    case Some(_) => false
-  }
-
+  def done = peek.isEmpty
   def skip() { inputStream.skip(1L) }
 
   def next(): Option[Char] = {

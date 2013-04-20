@@ -51,6 +51,11 @@ object App {
     ("count-books-by-date" -> CountBooksByDate.dateLists),
 
     ("gui-search" -> GUISearch.launch),
+    
+    // build a memory index
+    // separated for memory concerns
+    ("build-ordered-index" -> BuildOrderedIndex.makeIndex),
+    ("build-ordered-corpus" -> BuildOrderedIndex.makeCorpus),
 
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)

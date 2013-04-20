@@ -14,7 +14,7 @@ sealed case class HashedDoc(val index: Int, val data: Array[Int]) {
     true
   }
 }
-
+// 1825 1848 1850 1886
 object MBTEIDoc {
   def read(path: String): MBTEIDoc = {
     if(!IO.fileExists(path)) {
@@ -123,21 +123,19 @@ object DupDetect {
 
     var uniqueDocuments = new collection.mutable.ArrayBuffer[MBTEIDoc]
 
-    uniqueDocuments += MBTEIDoc.read(inputList(0))
-    var curDocIdx = 1
+    var curDocIdx = 0
     var tossed = 0
     
     while(curDocIdx < inputList.size && uniqueDocuments.size < targetNum) {
       val curDoc = MBTEIDoc.read(inputList(curDocIdx))
 
 
-      if(curDocIdx % 100 == 0) {
-        println("# "+curDocIdx+"/"+targetNum)
+      if(curDocIdx % 10 == 0) {
+        println("# "+curDocIdx+" "+uniqueDocuments.size+"/"+targetNum)
       }
 
       // invalid documents become zero-length
-      if(curDoc.size != 0) {
-
+      if(curDoc.size > 0) {
         // for all uniqueDocuments so far 
         // if there does not exist a document similar to this new one, keep it
         if(!uniqueDocuments.exists(_.similar(curDoc))) {

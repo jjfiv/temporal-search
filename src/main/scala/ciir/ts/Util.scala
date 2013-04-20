@@ -2,6 +2,20 @@ package ciir.ts
 
 
 object Util {
+  val runtime = Runtime.getRuntime()
+
+  def KiB(bytes: Long) = bytes >>> 10
+  def MiB(bytes: Long) = bytes >>> 20
+  def GiB(bytes: Long) = bytes >>> 30
+
+  def suggestGC() {
+    runtime.gc()
+    runtime.gc()
+  }
+
+  // not accurate because of garbage collection
+  def usedMem = runtime.totalMemory - runtime.freeMemory
+
   def timed[A](desc: String, block: =>A): A = {
     val ti = System.currentTimeMillis
     val result = block

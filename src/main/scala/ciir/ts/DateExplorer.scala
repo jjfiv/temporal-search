@@ -19,7 +19,9 @@ class LocalDateInfo(val retrieval: LocalRetrieval) {
     parms.set("text", false)
     parms.set("metadata", true)
     
-    var dateStr = retrieval.getDocument(documentName, parms).metadata.get("date")
+    val doc = retrieval.getDocument(documentName, parms)
+    val metadata = doc.metadata
+    var dateStr = metadata.get("date")
     
     if(dateStr == null) { return -1 }
     

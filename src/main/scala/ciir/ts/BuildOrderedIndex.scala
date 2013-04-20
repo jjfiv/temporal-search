@@ -37,7 +37,10 @@ object BuildOrderedIndex {
     import collection.JavaConversions._
     
     val metadata = XMLStream.simpleGetKeys(path, Set("identifier","title", "date"))
-    val words = MBTEI.words(path)
+    val words = {
+      val normaled = MBTEI.words(path).map(_.toLowerCase.filter(_.isLetterOrDigit))
+      normaled.filter(!_.isEmpty)
+    }
 
     var d = new Document()
     d.name = metadata.getOrElse("identifier","doc-"+num)
@@ -54,8 +57,8 @@ object BuildOrderedIndex {
     if(args.size != 3) {
       val allowedParts = Array("corpus","names","lengths","extents","postings","postings.porter")
       Util.quit(
-        "expected arguments: listFile indexPartName indexDir\n" +
-        "  indexPartName = {"+allowedParts.mkString(", ")+"}"
+        "expected arguments: listFile indexPartName indexDir [postings-chars]\n" +
+        allowedParts.mkString("  indexPartName = {",", ","}")
         )
     }
 

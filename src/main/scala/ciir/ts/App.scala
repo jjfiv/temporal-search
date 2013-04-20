@@ -34,12 +34,6 @@ object App {
     // swing-based gui for histogram stuff
     ("gui" -> ciir.ts.gui.UIMain.launch),
     
-    // build a memory index
-    // separated for memory concerns
-    ("build-ordered-index" -> BuildOrderedIndex.makeIndex),
-    ("build-ordered-corpus" -> BuildOrderedIndex.makeCorpus),
->>>>>>> gui
-
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)
     )

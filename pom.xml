@@ -22,12 +22,6 @@
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-swing</artifactId>
-      <version>${scala.version}</version>
-    </dependency>
-
     <!-- galago deps -->
 
     <dependency>

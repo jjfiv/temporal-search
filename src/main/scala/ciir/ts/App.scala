@@ -21,7 +21,7 @@ object App {
     ("dates-build" -> DateExplorer.buildIndex),
     ("dates-kmeans" -> DateExplorer.kmeansTerms),
 
-    ("filter-postings" -> ciir.ts.index.DateFilter.main),
+    ("postings-to-counts" -> ciir.ts.index.CountsMaker.main),
 
     ("barrel-cmp" -> DupDetect.compareBarrels),
     ("sample-book-list" -> DupDetect.sampleBooks),

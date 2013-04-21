@@ -34,7 +34,7 @@ object UIMain {
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
     val imageView = new ImagePanel(ImageMaker.basic(400,200))
     frame.add(imageView)
-    frame.setMinimumSize(imageView.minimumSize)
+    frame.setMinimumSize(imageView.getMinimumSize)
     frame.pack()
     frame.setVisible(true)
   }

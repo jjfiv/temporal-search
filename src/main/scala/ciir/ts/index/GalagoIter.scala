@@ -5,15 +5,28 @@ import org.lemurproject.galago.{tupleflow => GalagoTupleflow}
 
 object GalagoIter {
   import GalagoCore.retrieval.iterator._
-  import GalagoCore.index.Index
   import GalagoCore.index.{KeyIterator, ValueIterator}
   import GalagoCore.retrieval.processing.ScoringContext
   
+  type Index = GalagoCore.index.Index
+
   def keys(keyIter: KeyIterator)(op: =>Unit) {
     keyIter.reset()
     while(!keyIter.isDone) {
       op
       keyIter.nextKey
+    }
+  }
+
+  def lengths(iter: MovableLengthsIterator)(op: Int=>Unit) {
+    iter.reset()
+    var ctx = new ScoringContext
+    iter.setContext(ctx)
+    while(!iter.isDone) {
+      val doc = iter.currentCandidate
+      ctx.document = doc
+      op(iter.getCurrentLength)
+      iter.movePast(doc)
     }
   }
   

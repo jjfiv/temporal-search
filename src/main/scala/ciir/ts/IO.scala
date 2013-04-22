@@ -10,6 +10,14 @@ object IO {
       false
     else new File(fileName).exists()
   }
+  def dirExists(fileName: String) = {
+    if(fileName == null)
+      false
+    else {
+      val fp = new File(fileName)
+      fp.exists() && fp.isDirectory()
+    }
+  }
 
   def requireDirectory(outDir: String) {
     val file = new File(outDir)

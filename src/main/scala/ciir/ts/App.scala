@@ -22,6 +22,7 @@ object App {
     ("dates-kmeans" -> DateExplorer.kmeansTerms),
 
     ("postings-to-counts" -> ciir.ts.index.CountsMaker.main),
+    ("similar-terms-cli" -> ciir.ts.SimilarTerms.cli),
 
     ("barrel-cmp" -> DupDetect.compareBarrels),
     ("sample-book-list" -> DupDetect.sampleBooks),

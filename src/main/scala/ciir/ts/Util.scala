@@ -44,6 +44,18 @@ object Util {
     Console.err.println(msg)
     sys.exit(code)
   }
+
+  def runCLI(prompt: String, quitCmd: String)(onInput: String=>Unit) {
+    var done = false
+    while(!done) {
+      val line = scala.Console.readLine(prompt)
+      if(line == null || line == quitCmd) {
+        done = true
+      } else {
+        onInput(line)
+      }
+    }
+  }
 }
 
 

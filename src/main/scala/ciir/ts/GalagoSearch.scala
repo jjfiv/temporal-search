@@ -24,7 +24,9 @@ extends ScoringFunctionIterator(p, ls, it) {
 object RawSearch {
   def parseQuery(request: String): Node = {
     // drop anything not a letter or a digit
-    val cleaned = request.filter(_.isLetterOrDigit)
+    val cleaned = request.filter(ch => {
+      ch.isLetterOrDigit || ch.isWhitespace
+    })
     val iterName = classOf[RawScoreIter].getName()
     StructuredQuery.parse("#feature:class="+iterName+"("+cleaned+")")
   }

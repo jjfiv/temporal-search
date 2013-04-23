@@ -2,14 +2,13 @@ package ciir.ts
 
 // import subprojects
 import org.lemurproject.galago.{core => GalagoCore}
-import org.lemurproject.galago.{tupleflow => GalagoTupleflow}
+import org.lemurproject.galago.{tupleflow => Tupleflow}
 // import memory index interface
 import GalagoCore.index.mem._
 // import corpusfilewriter
 import GalagoCore.index.corpus.CorpusFileWriter
 import GalagoCore.parse.Document
-import GalagoTupleflow.Parameters
-import GalagoTupleflow.FakeParameters
+import Tupleflow.{Parameters, FakeParameters}
 import java.util.{List => JList, HashMap => JHashMap, ArrayList => JArrayList, Arrays => JArrays}
 
 // this class generalizes the method of writing to disk parts of indices

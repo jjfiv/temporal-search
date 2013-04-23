@@ -54,13 +54,14 @@ class DateRetrieval(indexDir: String) {
   val dateInfo = new LocalDateInfo(retrieval)
 
   def dateSearch(query: String): Array[DocDateScore] = {
-    RawSearch.runQuery(retrieval, numDocs, query).flatMap(sdoc => {
-      val doc = sdoc.document
-      val date = dateInfo.getDate(doc)
-      if(date >= 1820 && date <= 1919) {
-        Some(DocDateScore(doc, date, sdoc.score.toLong))
-      } else None
-    })
+    Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
+      case DocCount(doc, count) => {
+        val date = dateInfo.getDate(doc)
+        if(date >= 1820 && date <= 1919) {
+          Some(DocDateScore(doc, date, count))
+        } else None
+      }
+    }
   }
   def getDocName(id: Int) = index.getDocName(id)
 }

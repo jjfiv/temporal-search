@@ -137,12 +137,14 @@ object SimilarTerms {
 
     Util.runCLI("enter-action[quit]: ","quit")(query => {
       println("you entered '"+query+"'")
-      val dds = RawSearch.runQuery(retrieval, numDocs, query).flatMap(sdoc => {
-        val date = dateInfo.getDate(sdoc.document)
-        if(date >= 1820 && date <= 1919) {
-          Some(DocDateScore(sdoc.document, date, sdoc.score.toLong))
-        } else None
-      })
+      val dds = Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
+        case DocCount(doc, count) => {
+          val date = dateInfo.getDate(doc)
+          if(date >= 1820 && date <= 1919) {
+            Some(DocDateScore(doc, date, count))
+          } else None
+        }
+      }
       
       val dateMap = dds.groupBy(_.date)
 

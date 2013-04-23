@@ -3,7 +3,7 @@ package ciir.ts
 object IndexInspector {
   def run(args: Array[String]) {
     args.map(indexPath => {
-      val retrieval = GalagoIndexUtil.retrievalFromPath(indexPath)
+      val retrieval = Galago.openRetrieval(indexPath)
 
       println("Inspecting index \""+indexPath+"\"")
       println("  Document Count: "+retrieval.getCollectionStatistics("#lengths:document:part=lengths()").documentCount.toInt)
@@ -16,11 +16,7 @@ object App {
   var actions = Map[String,Array[String]=>Unit](
     ("inspect" -> IndexInspector.run),
 
-    ("term-plot-dates" -> DateExplorer.plotTerms),
     ("term-plot-gui" -> ciir.ts.gui.PlotResult.launch),
-
-    ("dates-build" -> DateExplorer.buildIndex),
-    ("dates-kmeans" -> DateExplorer.kmeansTerms),
 
     ("postings-to-counts" -> ciir.ts.index.CountsMaker.main),
     ("similar-terms-cli" -> ciir.ts.SimilarTerms.cli),

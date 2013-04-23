@@ -1,14 +1,24 @@
-package ciir.ts.index
+package ciir.ts
 
 import org.lemurproject.galago.{core => GalagoCore}
-import org.lemurproject.galago.{tupleflow => GalagoTupleflow}
+import org.lemurproject.galago.{tupleflow => Tupleflow}
 
-object GalagoIter {
-  import GalagoCore.retrieval.iterator._
-  import GalagoCore.index.{KeyIterator, ValueIterator}
-  import GalagoCore.retrieval.processing.ScoringContext
-  
+import GalagoCore.retrieval.LocalRetrieval
+import GalagoCore.retrieval.iterator._
+import GalagoCore.index.{KeyIterator, ValueIterator}
+import GalagoCore.retrieval.processing.ScoringContext
+
+import Tupleflow.Parameters
+
+object Galago {
   type Index = GalagoCore.index.Index
+  type Retrieval = GalagoCore.retrieval.Retrieval
+
+  def parameters(kv: Map[String,String]) = {
+    new Parameters(collection.JavaConversions.mapAsJavaMap(kv))
+  }
+
+  def openRetrieval(path: String) = new LocalRetrieval(path, new Parameters)
 
   def keys(keyIter: KeyIterator)(op: =>Unit) {
     keyIter.reset()
@@ -43,8 +53,9 @@ object GalagoIter {
     }
   }
 
-  type Counts = MovableCountIterator with ValueIterator
-  type Extents = MovableExtentIterator with ValueIterator
-  type Postings = Counts with Extents
+  type CountsIter = MovableCountIterator with ValueIterator
+  type ExtentsIter = MovableExtentIterator with ValueIterator
+  type PostingsIter = CountsIter with ExtentsIter
 }
+
 

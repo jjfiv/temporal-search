@@ -4,8 +4,6 @@ import gnu.trove.map.hash.{TIntIntHashMap, TIntLongHashMap}
 import gnu.trove.set.hash.{TIntHashSet, TLongHashSet}
 import collection.mutable.ArrayBuilder
 
-import ciir.ts.index.GalagoIter
-
 object Statistics {
   def mean(xs: Array[Long]) = {
     xs.sum.toDouble / xs.size.toDouble
@@ -81,92 +79,6 @@ class RankedList(val numHits: Int) {
   }
 }
 
-class BasicIndex(var index: GalagoIter.Index) {
-  val postings = index.getIndexPart("postings")
-  //val counts = index.getIndexPart("just-counts")
-  val (numDocs, maxTFVector) ={
-    var size = 0
-    var tfVector = new ArrayBuilder.ofLong
-    GalagoIter.lengths(index.getLengthsIterator)(len => {
-      size += 1
-      tfVector += len
-    })
-    (size, tfVector.result())
-  }
-
-  def getDocName(id: Int) = index.getName(id)
-  def getLength(id: Int) = maxTFVector(id)
-
-  def eachPosting(op: (String,Array[Long])=>Unit) {
-    var keyIter = postings.getIterator
-    
-    Util.timed("iterate over all counts:", {
-      GalagoIter.keys(keyIter) {
-        var data = new Array[Long](numDocs)
-        
-        // read in posting list, accumulate counts
-        var cIter = keyIter.getValueIterator.asInstanceOf[GalagoIter.Counts]
-        GalagoIter.docs(cIter) { data(_) = cIter.count() }
-        
-        // handle this posting
-        op(keyIter.getKeyString, data)
-      }
-    })
-  }
-
-  def cosineSimilarity(as: Array[Long], bs: Array[Long]): Double = {
-    assert(as.size == bs.size)
-    assert(as.size == maxTFVector.size)
-
-    var dot = 0.0
-    var magA = 0.0
-    var magB = 0.0
-
-    var idx = 0
-    while(idx < as.size) {
-      val ai = as(idx).toDouble
-      val bi = bs(idx).toDouble
-      
-      dot += ai*bi
-      magA += ai*ai
-      magB += bi*bi
-
-      idx += 1
-    }
-
-    dot / (math.sqrt(magA)*math.sqrt(magB))
-  }
-
-  def findSimilar(queryCurve: Array[Long], numResults: Int): Array[SimilarTerm] = {
-    var results = new RankedList(numResults)
-    eachPosting {
-      case (term, curve) => {
-        val similarityScore = cosineSimilarity(curve, queryCurve)
-        results.insert(SimilarTerm(term, similarityScore, curve))
-      }
-    }
-    results.done
-  }
-}
-
-class DateRetrieval(indexDir: String) {
-  val retrieval = GalagoIndexUtil.retrievalFromPath(indexDir)
-  val index = new BasicIndex(retrieval.getIndex)
-  val numDocs = index.numDocs
-  val dateInfo = new LocalDateInfo(retrieval)
-
-  def dateSearch(query: String): Array[DocDateScore] = {
-    RawSearch.runQuery(retrieval, numDocs, query).flatMap(sdoc => {
-      val doc = sdoc.document
-      val date = dateInfo.getDate(doc)
-      if(date >= 1820 && date <= 1919) {
-        Some(DocDateScore(doc, date, sdoc.score.toLong))
-      } else None
-    })
-  }
-  def getDocName(id: Int) = index.getDocName(id)
-}
-
 object SimilarTerms {
   def cli(args: Array[String]) {
     if(args.size != 1 || !IO.dirExists(args(0))) {
@@ -217,7 +129,7 @@ object SimilarTerms {
       Util.quit("expected args: galago-index-dir")
     }
     val indexFolder = args(0)
-    val retrieval = GalagoIndexUtil.retrievalFromPath(indexFolder)
+    val retrieval = Galago.openRetrieval(indexFolder)
     val index = new BasicIndex(retrieval.getIndex)
     val numDocs = index.numDocs
     

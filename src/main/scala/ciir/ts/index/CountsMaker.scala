@@ -1,11 +1,12 @@
 package ciir.ts.index
+import ciir.ts.Galago
 
 import org.lemurproject.galago.{core => GalagoCore}
-import org.lemurproject.galago.{tupleflow => GalagoTupleflow}
+import org.lemurproject.galago.{tupleflow => Tupleflow}
 
 import GalagoCore.index.disk.{DiskIndex, CountIndexWriter}
 import GalagoCore.index.IndexPartReader
-import GalagoTupleflow.{Parameters, FakeParameters}
+import Tupleflow.{Parameters, FakeParameters}
 
 object CountsMaker {
   def quit(msg: String) {
@@ -39,7 +40,7 @@ object CountsMaker {
     println("parsing index with "+totalKeys)
 
     var keyIter = inputReader.getIterator
-    GalagoIter.keys(keyIter) {
+    Galago.keys(keyIter) {
 
       if(currentKey % 10000 == 0){
         println("Key: "+currentKey+"/"+totalKeys)
@@ -47,8 +48,8 @@ object CountsMaker {
       
       // make sure we satisfy the minimum term count
       var termCount = 0
-      var cIter = keyIter.getValueIterator.asInstanceOf[GalagoIter.Counts]
-      GalagoIter.docs(cIter)(doc => {
+      var cIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
+      Galago.docs(cIter)(doc => {
         val count = cIter.count()
         assert(count != 0)
         termCount += count
@@ -58,9 +59,9 @@ object CountsMaker {
       assert(termCount > 0)
 
       if(termCount >= minimumTF) {
-        var pIter = keyIter.getValueIterator.asInstanceOf[GalagoIter.Counts]
+        var pIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
         outputWriter.processWord(keyIter.getKey)
-        GalagoIter.docs(pIter)(doc => {
+        Galago.docs(pIter)(doc => {
           outputWriter.processDocument(doc)
           outputWriter.processTuple(termCount)
         })

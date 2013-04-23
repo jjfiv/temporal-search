@@ -4,14 +4,6 @@ import java.awt.image.BufferedImage
 import javax.swing._
 
 object ImageMaker {
-  def basic(w: Int, h: Int) = {
-    var img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
-    var gfx = img.createGraphics
-    gfx.setColor(Color.WHITE)
-    gfx.fillRect(0,0,w,h)
-    gfx.dispose()
-    img
-  }
   def graph(data: Array[Int], w: Int, h: Int) = {
     val barWidth = w/data.size
     var img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
@@ -50,25 +42,20 @@ class ImagePanel(var img: BufferedImage) extends JPanel {
 }
 
 object UI {
+  import java.awt.event._
   def runLater(op: =>Unit) {
     SwingUtilities.invokeLater(new Runnable { def run() { op } })
   }
-}
-
-object UIMain {
-  def launch(args: Array[String]) {
-    UI.runLater {
-      show()
-    }
+  def actionResponder(op: =>Unit) = new ActionListener {
+    def actionPerformed(evt: ActionEvent) { op }
   }
-  def show() {
-    var frame = new JFrame("Using Raw Swing")
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
-    val imageView = new ImagePanel(ImageMaker.basic(400,200))
-    frame.add(imageView)
-    frame.setMinimumSize(imageView.getMinimumSize)
-    frame.pack()
-    frame.setVisible(true)
+  def usePreferredSize(comp: JComponent) {
+    val pref = comp.getPreferredSize
+    comp.setMaximumSize(pref)
+    comp.setMinimumSize(pref)
+  }
+  def debugBorder(comp: JComponent) {
+    comp.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.RED), comp.getBorder))
   }
 }
 

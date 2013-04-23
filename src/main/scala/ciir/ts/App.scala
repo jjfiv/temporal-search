@@ -35,9 +35,6 @@ object App {
     // separated for memory concerns; preserves input list order
     ("build-index-part" -> BuildOrderedIndex.makeIndexPart),
     
-    // swing-based gui for histogram stuff
-    ("gui" -> ciir.ts.gui.UIMain.launch),
-    
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)
     )

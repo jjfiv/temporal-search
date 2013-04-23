@@ -56,6 +56,18 @@ object Util {
       }
     }
   }
+  
+  def whileCLI(prompt: String)(onInput: String=>Boolean) {
+    var done = false
+    while(!done) {
+      val line = scala.Console.readLine(prompt)
+      if(line == null) {
+        done = true
+      } else {
+        done = !onInput(line)
+      }
+    }
+  }
 }
 
 

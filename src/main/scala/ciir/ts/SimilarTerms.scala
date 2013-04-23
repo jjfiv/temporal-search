@@ -83,7 +83,7 @@ class RankedList(val numHits: Int) {
 
 class BasicIndex(var index: GalagoIter.Index) {
   val postings = index.getIndexPart("postings")
-  val counts = index.getIndexPart("just-counts")
+  //val counts = index.getIndexPart("just-counts")
   val (numDocs, maxTFVector) ={
     var size = 0
     var tfVector = new ArrayBuilder.ofLong
@@ -94,8 +94,11 @@ class BasicIndex(var index: GalagoIter.Index) {
     (size, tfVector.result())
   }
 
+  def getDocName(id: Int) = index.getName(id)
+  def getLength(id: Int) = maxTFVector(id)
+
   def eachPosting(op: (String,Array[Long])=>Unit) {
-    var keyIter = counts.getIterator
+    var keyIter = postings.getIterator
     
     Util.timed("iterate over all counts:", {
       GalagoIter.keys(keyIter) {
@@ -146,9 +149,70 @@ class BasicIndex(var index: GalagoIter.Index) {
   }
 }
 
+class DateRetrieval(indexDir: String) {
+  val retrieval = GalagoIndexUtil.retrievalFromPath(indexDir)
+  val index = new BasicIndex(retrieval.getIndex)
+  val numDocs = index.numDocs
+  val dateInfo = new LocalDateInfo(retrieval)
+
+  def dateSearch(query: String): Array[DocDateScore] = {
+    RawSearch.runQuery(retrieval, numDocs, query).flatMap(sdoc => {
+      val doc = sdoc.document
+      val date = dateInfo.getDate(doc)
+      if(date >= 1820 && date <= 1919) {
+        Some(DocDateScore(doc, date, sdoc.score.toLong))
+      } else None
+    })
+  }
+  def getDocName(id: Int) = index.getDocName(id)
+}
 
 object SimilarTerms {
   def cli(args: Array[String]) {
+    if(args.size != 1 || !IO.dirExists(args(0))) {
+      Util.quit("expected args: galago-index-dir")
+    }
+    val retrieval = new DateRetrieval(args(0))
+
+    println("Ready for input!")
+    Util.whileCLI("> ") {
+      case "" => true
+      case "q" | "quit" | "exit" => {
+        false
+      }
+      case "?" | "h" | "help" => {
+        println("quit to exit")
+        true
+      }
+      case line => {
+        val cmd = line.takeWhile(!_.isWhitespace)
+        val rest = line.drop(cmd.size).trim
+
+        if(rest.nonEmpty) {
+          cmd match {
+            case "search" => {
+                retrieval.dateSearch(rest).take(10).foreach {
+                  case DocDateScore(doc, date, score) => {
+                    printf("%-60s %4d %10d\n", retrieval.getDocName(doc), date, score)
+                  }
+                }
+              true
+            }
+            case "date-summary" => {
+              val raw = retrieval.dateSearch(rest)
+              val byDate = raw.groupBy(_.date)
+              true
+            }
+            case _ => true
+          }
+        } else {
+          println(" *** error: empty query")
+          true
+        }
+      }
+    }
+  }
+  def bah(args: Array[String]) {
     if(args.size != 1 || !IO.dirExists(args(0))) {
       Util.quit("expected args: galago-index-dir")
     }
@@ -159,7 +223,7 @@ object SimilarTerms {
     
     val dateInfo = new LocalDateInfo(retrieval)
 
-    Util.runCLI("enter-query[quit]: ","quit")(query => {
+    Util.runCLI("enter-action[quit]: ","quit")(query => {
       println("you entered '"+query+"'")
       val dds = RawSearch.runQuery(retrieval, numDocs, query).flatMap(sdoc => {
         val date = dateInfo.getDate(sdoc.document)

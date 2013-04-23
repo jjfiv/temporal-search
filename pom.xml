@@ -14,6 +14,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <mainClass>ciir.ts.App</mainClass>
     <scala.version>2.10.1</scala.version>
+    <galago.version>3.4</galago.version>
   </properties>
 
   <dependencies>
@@ -27,18 +28,19 @@
     <dependency>
       <groupId>org.lemurproject.galago</groupId>
       <artifactId>core</artifactId>
-      <version>3.4</version>
+      <version>${galago.version}</version>
     </dependency>
     <dependency>
       <groupId>org.lemurproject.galago</groupId>
       <artifactId>contrib</artifactId>
-      <version>3.4</version>
+      <version>${galago.version}</version>
     </dependency>
     <dependency>
       <groupId>org.lemurproject.galago</groupId>
       <artifactId>tupleflow</artifactId>
-      <version>3.4</version>
+      <version>${galago.version}</version>
     </dependency>
+
 
     <dependency>
       <groupId>junit</groupId>

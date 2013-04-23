@@ -17,6 +17,7 @@ object App {
     ("inspect" -> IndexInspector.run),
 
     ("term-plot-dates" -> DateExplorer.plotTerms),
+    ("term-plot-gui" -> ciir.ts.gui.PlotResult.launch),
 
     ("dates-build" -> DateExplorer.buildIndex),
     ("dates-kmeans" -> DateExplorer.kmeansTerms),

@@ -50,8 +50,10 @@ class LocalDateInfo(val retrieval: Galago.Retrieval) {
 class DateRetrieval(indexDir: String) {
   val retrieval = Galago.openRetrieval(indexDir)
   val index = new BasicIndex(retrieval.getIndex)
-  val numDocs = index.numDocs
   val dateInfo = new LocalDateInfo(retrieval)
+
+  def numDocs = index.numDocs
+  def getDocName(id: Int) = index.getDocName(id)
 
   def dateSearch(query: String): Array[DocDateScore] = {
     Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
@@ -63,8 +65,65 @@ class DateRetrieval(indexDir: String) {
       }
     }
   }
-  def getDocName(id: Int) = index.getDocName(id)
+  def search(query: String): Array[Long] = {
+    var tfVector = new Array[Long](numDocs)
+    Galago.doCountsQuery(retrieval, numDocs, query).foreach {
+      case DocCount(doc, count) => tfVector(doc) = count
+    }
+    tfVector
+  }
+  def toDateVector(tfVector: Array[Long]): Array[Long] = {
+    assert(tfVector.size == numDocs)
+    var dateTF = new Array[Long](100)
+    tfVector.zipWithIndex.foreach {
+      case (count, doc) => {
+        val date = dateInfo.getDate(doc)
+        if(date >= 1820 && date <= 1919) {
+          dateTF(date - 1820) += count
+        }
+      }
+    }
+    dateTF
+  }
 }
+
+case class DocDateScore(val docId: Int, val date: Int, val score: Long) { }
+case class SimilarTerm(val key: String, val score: Double, val data: Array[Long]) extends Ordered[SimilarTerm] {
+  def compare(that: SimilarTerm) = score.compare(that.score)
+}
+// hooray generics
+// manifest is a trick to keep more type information
+// and ordered implies that A will have a compare function defined
+class RankedList[A <% Ordered[A]: Manifest](val numHits: Int) {
+  private var results = new Array[A](numHits)
+  private var count = 0
+
+  def insert(newest: A) {
+    if(count < numHits) {
+      results(count) = newest
+      count += 1
+      return
+    }
+
+    // discard new things with tiny scores, special case
+    if(results.last > newest) {
+      return
+    }
+
+    // chop current array in pieces and reassemble
+    val (better, worse) = results.partition(_ > newest)
+    results = (better :+ newest) ++ worse.dropRight(1)
+  }
+
+  def done = {
+    if (count <= numHits) {
+      results.take(count).sorted.reverse
+    } else {
+      results.reverse
+    }
+  }
+}
+
 
 class BasicIndex(var index: Galago.Index) {
   val postings = index.getIndexPart("postings")
@@ -123,7 +182,7 @@ class BasicIndex(var index: Galago.Index) {
   }
 
   def findSimilar(queryCurve: Array[Long], numResults: Int): Array[SimilarTerm] = {
-    var results = new RankedList(numResults)
+    var results = new RankedList[SimilarTerm](numResults)
     eachPosting {
       case (term, curve) => {
         val similarityScore = cosineSimilarity(curve, queryCurve)

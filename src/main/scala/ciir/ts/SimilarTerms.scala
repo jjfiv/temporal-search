@@ -44,40 +44,6 @@ object Statistics {
   }
 }
 
-case class DocDateScore(val docId: Int, val date: Int, val score: Long) { }
-case class SimilarTerm(val key: String, val score: Double, val data: Array[Long]) { }
-
-class RankedList(val numHits: Int) {
-  private var results = new Array[SimilarTerm](numHits)
-  private var count = 0
-
-  def compare(a: SimilarTerm, b: SimilarTerm) = a.score > b.score
-
-  def insert(newest: SimilarTerm) {
-    if(count < numHits) {
-      results(count) = newest
-      count += 1
-      return
-    }
-
-    // discard new things with tiny scores, special case
-    if(compare(results.last, newest)) {
-      return
-    }
-
-    // chop current array in pieces and reassemble
-    val (better, worse) = results.partition(compare(_,newest))
-    results = (better :+ newest) ++ worse.dropRight(1)
-  }
-
-  def done = {
-    if (count <= numHits) {
-      results.take(count).sortBy(_.score).reverse
-    } else {
-      results.reverse
-    }
-  }
-}
 
 object SimilarTerms {
   def cli(args: Array[String]) {

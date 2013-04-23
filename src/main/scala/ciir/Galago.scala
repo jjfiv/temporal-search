@@ -75,8 +75,8 @@ object Galago {
       p
     }
     
-    val request = parseCountsQuery(query)
-    var scored = retrieval.runQuery(request, searchParms)
+    val request = retrieval.transformQuery(parseCountsQuery(query), searchParms)
+    val scored = retrieval.runQuery(request, searchParms)
     
     if(scored == null) return Array()
     

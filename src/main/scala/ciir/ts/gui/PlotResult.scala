@@ -10,22 +10,28 @@ class SearchPlotter(indexPath: String) {
   var results =  Seq[JPanel]()
   val GraphHeight = 100
   val GraphWidth = 400
-  
+
   def search(query: String) {
     val NumYears = 100
 
-    var data = new Array[Long](NumYears)
-    retrieval.dateSearch(query).foreach {
-      case DocDateScore(_, date, score) => data(date-1820) = score
-    }
-    
-    //val range = data.max.toDouble
-    val scaledData = data.map( tf => {
-      tf.toInt
-      //((tf.toDouble / range) * 400.0).toInt 
-    })
+    var dateVector = new Array[Long](NumYears)
+    var tfVector = new Array[Long](retrieval.numDocs)
 
-    pushResultPanel(query, scaledData)
+    val tf = retrieval.search(query)
+    val dates = retrieval.toDateVector(tf)
+
+    pushResultPanel(query, dates.map(_.toInt))
+
+    UI.runLater {
+      println("Finding similar...")
+      retrieval.index.findSimilar(tf, 10) foreach {
+        case SimilarTerm(term, score, data) => {
+          val dates = retrieval.toDateVector(data).map(_.toInt)
+          pushResultPanel("%s %.3f".format(term,score), dates)
+        }
+      }
+      println("done...")
+    }
   }
 
   def pushResultPanel(term: String, tf: Array[Int]) {

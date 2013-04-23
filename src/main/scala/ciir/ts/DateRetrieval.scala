@@ -59,86 +59,25 @@ class LocalDateInfo(val numDocs: Int, val retrieval: Galago.Retrieval) {
   }
 }
 
-class DateRetrieval(indexDir: String) {
-  val retrieval = Galago.openRetrieval(indexDir)
-  val index = new BasicIndex(retrieval.getIndex)
-  val dateInfo = new LocalDateInfo(index.numDocs, retrieval)
-
-  val StartYear = 1820
-  val NumYears = 100
-  val EndYear = StartYear + NumYears - 1
-
-  def validDate(d: Int) = d >= StartYear && d <= EndYear
-
-  def numDocs = index.numDocs
-  def getDocName(id: Int) = index.getDocName(id)
-
-  def dateSearch(query: String): Array[DocDateScore] = {
-    Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
-      case DocCount(doc, count) => {
-        val date = dateInfo.getDate(doc)
-        if(validDate(date)) {
-          Some(DocDateScore(doc, date, count))
-        } else None
-      }
-    }
-  }
-  def search(query: String): Array[Long] = {
-    var tfVector = new Array[Long](numDocs)
-    Galago.doCountsQuery(retrieval, numDocs, query).foreach {
-      case DocCount(doc, count) => tfVector(doc) = count
-    }
-    tfVector
-  }
-  def toDateVector(tfVector: Array[Long]): Array[Long] = {
-    assert(tfVector.size == numDocs)
-    var dateTF = new Array[Long](NumYears)
-    tfVector.zipWithIndex.foreach {
-      case (count, doc) => {
-        val date = dateInfo.getDate(doc)
-        if(validDate(date)) {
-          dateTF(date - StartYear) += count
-        }
-      }
-    }
-    dateTF
-  }
-
-  def approxDateToTF(dateVector: Array[Long]): Array[Long] = {
-    assert(dateVector.size == NumYears)
-    
-    var tfVector = new Array[Long](numDocs)
-    
-    dateVector.zip(StartYear to EndYear).foreach {
-      case (0, _) => { }
-      case (weight, year) => {
-        val docs = dateInfo.getDocsForDate(year)
-        val meanWeight = (weight.toDouble / docs.size.toDouble).toLong
-        docs.foreach { tfVector(_) = meanWeight }
-      }
-    }
-    tfVector
-  }
-}
-
 object CurveFaker {
-  def stepFunction(dates: DateRetrieval, start: Int, weight: Long) = {
+  def stepFunction(dates: DateRetrieval, start: Int, weight: Int) = {
     dates.approxDateToTF(Array.tabulate(dates.NumYears) {
       case idx => {
         val date = idx + dates.StartYear
 
         if(date >= start) {
           weight
-        } else 0L
+        } else 0
       }
     })
   }
 }
 
-case class DocDateScore(val docId: Int, val date: Int, val score: Long) { }
-case class SimilarTerm(val key: String, val score: Double, val data: Array[Long]) extends Ordered[SimilarTerm] {
+case class DocDateScore(val docId: Int, val date: Int, val score: Int) { }
+case class SimilarTerm(val key: String, val score: Double, val data: Array[Int]) extends Ordered[SimilarTerm] {
   def compare(that: SimilarTerm) = score.compare(that.score)
 }
+
 // hooray generics
 // manifest is a trick to keep more type information
 // and ordered implies that A will have a compare function defined
@@ -178,7 +117,7 @@ class BasicIndex(var index: Galago.Index) {
   //val counts = index.getIndexPart("just-counts")
   val (numDocs, maxTFVector) ={
     var size = 0
-    var tfVector = new ArrayBuilder.ofLong
+    var tfVector = new ArrayBuilder.ofInt
     Galago.lengths(index.getLengthsIterator)(len => {
       size += 1
       tfVector += len
@@ -186,10 +125,16 @@ class BasicIndex(var index: Galago.Index) {
     (size, tfVector.result())
   }
 
+  def hasPart(partName: String) = index.getIndexPart(partName) != null
+  def getPart(partName: String) = {
+    assert(hasPart(partName))
+    index.getIndexPart(partName)
+  }
+
   def getDocName(id: Int) = index.getName(id)
   def getLength(id: Int) = maxTFVector(id)
 
-  def eachPosting(op: (String,Array[Long])=>Unit) {
+  def eachPosting(op: (String,Array[Int])=>Unit) {
     val bestIndexPart = {
       Set("just-counts", "counts", "postings", "postings.porter").map(index.getIndexPart).filter(_ != null).head
     }
@@ -198,8 +143,8 @@ class BasicIndex(var index: Galago.Index) {
     
     Util.timed("iterate over all counts:", {
       Galago.keys(keyIter) {
-        var data = new Array[Long](numDocs)
-        
+        var data = new Array[Int](numDocs)
+
         // read in posting list, accumulate counts
         var cIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
         Galago.docs(cIter) { data(_) = cIter.count() }
@@ -210,35 +155,105 @@ class BasicIndex(var index: Galago.Index) {
     })
   }
 
-  def cosineSimilarity(as: Array[Long], bs: Array[Long]): Double = {
-    assert(as.size == bs.size)
-    assert(as.size == maxTFVector.size)
+  def eachDatePosting(op: (String,Array[Int])=>Unit) {
+    var keyIter = getPart("date-counts").getIterator
+    
+    Util.timed("iterate over all date counts:", {
+      Galago.keys(keyIter) {
+        var data = new Array[Int](100)
 
-    var dot = 0.0
-    var magA = 0.0
-    var magB = 0.0
-
-    var idx = 0
-    while(idx < as.size) {
-      val ai = as(idx).toDouble
-      val bi = bs(idx).toDouble
-      
-      dot += ai*bi
-      magA += ai*ai
-      magB += bi*bi
-
-      idx += 1
-    }
-
-    dot / (math.sqrt(magA)*math.sqrt(magB))
+        assert(!keyIter.isDone)
+        // read in posting list, accumulate counts
+        var cIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
+        Galago.docs(cIter) { data(_) = cIter.count() }
+        
+        // handle this posting
+        op(keyIter.getKeyString, data)
+      }
+    })
   }
 
-  def findSimilar(queryCurve: Array[Long], numResults: Int): Array[SimilarTerm] = {
+}
+
+class DateRetrieval(indexDir: String) {
+  val retrieval = Galago.openRetrieval(indexDir)
+  val index = new BasicIndex(retrieval.getIndex)
+  val dateInfo = new LocalDateInfo(index.numDocs, retrieval)
+
+  val StartYear = 1820
+  val NumYears = 100
+  val EndYear = StartYear + NumYears - 1
+
+  def validDate(d: Int) = d >= StartYear && d <= EndYear
+
+  def numDocs = index.numDocs
+  def getDocName(id: Int) = index.getDocName(id)
+
+  def dateSearch(query: String): Array[DocDateScore] = {
+    Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
+      case DocCount(doc, count) => {
+        val date = dateInfo.getDate(doc)
+        if(validDate(date)) {
+          Some(DocDateScore(doc, date, count))
+        } else None
+      }
+    }
+  }
+  def search(query: String): Array[Int] = {
+    var tfVector = new Array[Int](numDocs)
+    Galago.doCountsQuery(retrieval, numDocs, query).foreach {
+      case DocCount(doc, count) => tfVector(doc) = count
+    }
+    tfVector
+  }
+  def toDateVector(tfVector: Array[Int]): Array[Int] = {
+    assert(tfVector.size == numDocs)
+    var dateTF = new Array[Int](NumYears)
+    tfVector.zipWithIndex.foreach {
+      case (count, doc) => {
+        val date = dateInfo.getDate(doc)
+        if(validDate(date)) {
+          dateTF(date - StartYear) += count
+        }
+      }
+    }
+    dateTF
+  }
+
+  def approxDateToTF(dateVector: Array[Int]): Array[Int] = {
+    assert(dateVector.size == NumYears)
+    
+    var tfVector = new Array[Int](numDocs)
+    
+    dateVector.zip(StartYear to EndYear).foreach {
+      case (0, _) => { }
+      case (weight, year) => {
+        val docs = dateInfo.getDocsForDate(year)
+        val meanWeight = (weight.toDouble / docs.size.toDouble).toInt
+        docs.foreach { tfVector(_) = meanWeight }
+      }
+    }
+    tfVector
+  }
+
+  def findSimilarTF(queryCurve: Array[Int], numResults: Int): Array[SimilarTerm] = {
     var results = new RankedList[SimilarTerm](numResults)
-    eachPosting {
+    index.eachPosting {
       case (term, curve) => {
-        val similarityScore = cosineSimilarity(curve, queryCurve)
-        results.insert(SimilarTerm(term, similarityScore, curve))
+        val similarityScore = Math.cosineSimilarity(curve, queryCurve)
+        results.insert(SimilarTerm(term, similarityScore, curve.clone()))
+      }
+    }
+    results.done
+  }
+
+  def findSimilarDate(queryCurve: Array[Int], numResults: Int): Array[SimilarTerm] = {
+    assert(queryCurve.size == NumYears)
+    var results = new RankedList[SimilarTerm](numResults)
+    index.eachDatePosting {
+      case (term, curve) => {
+        val similarityScore = Math.cosineSimilarity(curve, queryCurve)
+        results.insert(SimilarTerm(term, similarityScore, curve.clone()))
       }
     }
     results.done

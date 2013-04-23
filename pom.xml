@@ -79,7 +79,7 @@
           <addScalacArgs>-deprecation|-unchecked</addScalacArgs>
           <jvmArgs>
             <jvmArg>-Xms64m</jvmArg>
-            <jvmArg>-Xmx1024m</jvmArg>
+            <jvmArg>-Xmx3G</jvmArg>
           </jvmArgs>
         </configuration>
         <executions>

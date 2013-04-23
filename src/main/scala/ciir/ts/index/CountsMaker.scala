@@ -1,5 +1,5 @@
 package ciir.ts.index
-import ciir.ts.Galago
+import ciir.ts._
 
 import org.lemurproject.galago.{core => GalagoCore}
 import org.lemurproject.galago.{tupleflow => Tupleflow}
@@ -51,12 +51,8 @@ object CountsMaker {
       var cIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
       Galago.docs(cIter)(doc => {
         val count = cIter.count()
-        assert(count != 0)
         termCount += count
-        termCount < minimumTF
       })
-
-      assert(termCount > 0)
 
       if(termCount >= minimumTF) {
         var pIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
@@ -75,6 +71,68 @@ object CountsMaker {
     println("processed "+totalKeys+" keys, kept "+keptKeys)
     outputWriter.close()
     println("Done")
+  }
+
+  def makeDateCounts(args: Array[String]) {
+    if(args.size != 1) {
+      Util.quit("*** error: expected argument: index-path")
+    }
+
+    val dates = new DateRetrieval(args(0))
+    val indexPath = args(0)
+
+    if(dates.index.hasPart("date-counts"))
+      Util.quit("given index already has `date-counts`")
+    
+    var inputReader = dates.index.getPart("just-counts")
+
+    var outputWriter = {
+      var parms = new Parameters
+      parms.set("filename", args(0)+"/"+"date-counts")
+      new CountIndexWriter(new FakeParameters(parms))
+    }
+
+    var totalKeys = inputReader.getManifest.get("statistics/vocabCount", 0L)
+    var currentKey = 0
+    
+    println("parsing index with "+totalKeys)
+
+    var keyIter = inputReader.getIterator
+    Galago.keys(keyIter) {
+
+      if(currentKey % 10000 == 0){
+        println("Key: "+currentKey+"/"+totalKeys)
+      }
+      
+      // sweep across documents, building a date vector
+      var dateVector = new Array[Int](dates.NumYears)
+      var cIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
+      Galago.docs(cIter)(doc => {
+        val date = dates.dateInfo.getDate(doc)
+        if(dates.validDate(date)) {
+          val idx = date - dates.StartYear
+          dateVector(idx) += cIter.count()
+        }
+      })
+
+      if(dateVector.sum > 0) {
+        // write the date vector to the output file
+        outputWriter.processWord(keyIter.getKey)
+        dateVector.zipWithIndex.foreach {
+          case (0, _) => { }
+          case (count, idx) => {
+            val date = idx
+            outputWriter.processDocument(date)
+            outputWriter.processTuple(count)
+          }
+        }
+      }
+
+      currentKey += 1
+    }
+    outputWriter.close()
+    println("Done")
+    
   }
 }
 

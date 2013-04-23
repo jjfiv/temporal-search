@@ -13,7 +13,7 @@ class SearchPlotter(indexPath: String) {
   def search(query: String) {
     clearResultPanel()
 
-    var tf: Array[Long] = null
+    var tf: Array[Int] = null
 
     // create a step function from given date
     if(query.startsWith("$") && query.tail.forall(_.isDigit) && query.tail.size==4 && retrieval.validDate(query.tail.toInt)) {
@@ -26,13 +26,18 @@ class SearchPlotter(indexPath: String) {
     assert(tf != null)
 
     val dates = retrieval.toDateVector(tf)
-    pushResultPanel(query, dates.map(_.toInt))
+    pushResultPanel(query, dates)
 
     println("Finding similar...")
-    retrieval.index.findSimilar(tf, 40) foreach {
+    retrieval.findSimilarTF(tf, 20) foreach {
       case SimilarTerm(term, score, data) => {
-        val dates = retrieval.toDateVector(data).map(_.toInt)
+        val dates = retrieval.toDateVector(data)
         pushResultPanel("%s %.3f".format(term,score), dates)
+      }
+    }
+    retrieval.findSimilarDate(dates, 20) foreach {
+      case SimilarTerm(term, score, data) => {
+        pushResultPanel("%s %.3f".format(term,score), data)
       }
     }
     println("done...")

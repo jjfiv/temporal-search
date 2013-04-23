@@ -81,12 +81,12 @@ object Galago {
     if(scored == null) return Array()
     
     scored.map(sdoc => {
-      DocCount(sdoc.document, sdoc.score.toLong)
+      DocCount(sdoc.document, sdoc.score.toInt)
     })
   }
 }
 
-case class DocCount(val doc: Int, val count: Long) { }
+case class DocCount(val doc: Int, val count: Int) { }
 
 // implement custom scoring
 class CountsScorer (p: NodeParameters, ls: MovableLengthsIterator, it: MovableCountIterator) extends ScoringFunctionIterator(p, ls, it) {

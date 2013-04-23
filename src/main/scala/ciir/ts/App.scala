@@ -19,6 +19,7 @@ object App {
     ("term-plot-gui" -> ciir.ts.gui.PlotResult.launch),
 
     ("postings-to-counts" -> ciir.ts.index.CountsMaker.main),
+    ("make-date-counts" -> ciir.ts.index.CountsMaker.makeDateCounts),
     ("similar-terms-cli" -> ciir.ts.SimilarTerms.cli),
 
     ("barrel-cmp" -> DupDetect.compareBarrels),

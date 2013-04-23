@@ -3,8 +3,8 @@ package ciir.ts
 import gnu.trove.map.hash._
 import collection.mutable.ArrayBuilder
 
-class LocalDateInfo(val retrieval: Galago.Retrieval) {
-  var cache = new TIntIntHashMap
+class LocalDateInfo(val numDocs: Int, val retrieval: Galago.Retrieval) {
+  var linearCache = Array.fill(numDocs) { -1 }
   
   private def retrieveDate(documentName: String): Int = {
     val parms = Galago.parameters(Map(
@@ -37,12 +37,24 @@ class LocalDateInfo(val retrieval: Galago.Retrieval) {
   }
   
   def getDate(doc: Int) = {
-    if(cache.containsKey(doc)) {
-      cache.get(doc)
-    } else {
+    if(linearCache(doc) != -1)
+      linearCache(doc)
+    else {
       val date = retrieveDate(doc)
-      cache.put(doc, date)
+      linearCache(doc) = date
       date
+    }
+  }
+
+  // reverse map; for building fake TF curves
+  def getDocsForDate(date: Int) = {
+    linearCache.indices.flatMap {
+      case doc => {
+        if(getDate(doc) == date)
+          Some(doc)
+        else
+          None
+      }
     }
   }
 }
@@ -50,7 +62,13 @@ class LocalDateInfo(val retrieval: Galago.Retrieval) {
 class DateRetrieval(indexDir: String) {
   val retrieval = Galago.openRetrieval(indexDir)
   val index = new BasicIndex(retrieval.getIndex)
-  val dateInfo = new LocalDateInfo(retrieval)
+  val dateInfo = new LocalDateInfo(index.numDocs, retrieval)
+
+  val StartYear = 1820
+  val NumYears = 100
+  val EndYear = StartYear + NumYears - 1
+
+  def validDate(d: Int) = d >= StartYear && d <= EndYear
 
   def numDocs = index.numDocs
   def getDocName(id: Int) = index.getDocName(id)
@@ -59,7 +77,7 @@ class DateRetrieval(indexDir: String) {
     Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
       case DocCount(doc, count) => {
         val date = dateInfo.getDate(doc)
-        if(date >= 1820 && date <= 1919) {
+        if(validDate(date)) {
           Some(DocDateScore(doc, date, count))
         } else None
       }
@@ -74,16 +92,46 @@ class DateRetrieval(indexDir: String) {
   }
   def toDateVector(tfVector: Array[Long]): Array[Long] = {
     assert(tfVector.size == numDocs)
-    var dateTF = new Array[Long](100)
+    var dateTF = new Array[Long](NumYears)
     tfVector.zipWithIndex.foreach {
       case (count, doc) => {
         val date = dateInfo.getDate(doc)
-        if(date >= 1820 && date <= 1919) {
-          dateTF(date - 1820) += count
+        if(validDate(date)) {
+          dateTF(date - StartYear) += count
         }
       }
     }
     dateTF
+  }
+
+  def approxDateToTF(dateVector: Array[Long]): Array[Long] = {
+    assert(dateVector.size == NumYears)
+    
+    var tfVector = new Array[Long](numDocs)
+    
+    dateVector.zip(StartYear to EndYear).foreach {
+      case (0, _) => { }
+      case (weight, year) => {
+        val docs = dateInfo.getDocsForDate(year)
+        val meanWeight = (weight.toDouble / docs.size.toDouble).toLong
+        docs.foreach { tfVector(_) = meanWeight }
+      }
+    }
+    tfVector
+  }
+}
+
+object CurveFaker {
+  def stepFunction(dates: DateRetrieval, start: Int, weight: Long) = {
+    dates.approxDateToTF(Array.tabulate(dates.NumYears) {
+      case idx => {
+        val date = idx + dates.StartYear
+
+        if(date >= start) {
+          weight
+        } else 0L
+      }
+    })
   }
 }
 
@@ -142,7 +190,11 @@ class BasicIndex(var index: Galago.Index) {
   def getLength(id: Int) = maxTFVector(id)
 
   def eachPosting(op: (String,Array[Long])=>Unit) {
-    var keyIter = postings.getIterator
+    val bestIndexPart = {
+      Set("just-counts", "counts", "postings", "postings.porter").map(index.getIndexPart).filter(_ != null).head
+    }
+    
+    var keyIter = bestIndexPart.getIterator
     
     Util.timed("iterate over all counts:", {
       Galago.keys(keyIter) {

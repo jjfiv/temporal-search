@@ -7,31 +7,41 @@ class SearchPlotter(indexPath: String) {
   var retrieval = new DateRetrieval(indexPath)
   var resultPane: JPanel = null
   var numResults = 0
-  var results =  Seq[JPanel]()
   val GraphHeight = 100
   val GraphWidth = 400
 
   def search(query: String) {
-    val NumYears = 100
+    clearResultPanel()
 
-    var dateVector = new Array[Long](NumYears)
-    var tfVector = new Array[Long](retrieval.numDocs)
+    var tf: Array[Long] = null
 
-    val tf = retrieval.search(query)
+    // create a step function from given date
+    if(query.startsWith("$") && query.tail.forall(_.isDigit) && query.tail.size==4 && retrieval.validDate(query.tail.toInt)) {
+      tf = CurveFaker.stepFunction(retrieval, query.tail.toInt, 150)
+    } else {
+      // simple text search
+      tf = retrieval.search(query)
+    }
+
+    assert(tf != null)
+
     val dates = retrieval.toDateVector(tf)
-
     pushResultPanel(query, dates.map(_.toInt))
 
-    UI.runLater {
-      println("Finding similar...")
-      retrieval.index.findSimilar(tf, 10) foreach {
-        case SimilarTerm(term, score, data) => {
-          val dates = retrieval.toDateVector(data).map(_.toInt)
-          pushResultPanel("%s %.3f".format(term,score), dates)
-        }
+    println("Finding similar...")
+    retrieval.index.findSimilar(tf, 40) foreach {
+      case SimilarTerm(term, score, data) => {
+        val dates = retrieval.toDateVector(data).map(_.toInt)
+        pushResultPanel("%s %.3f".format(term,score), dates)
       }
-      println("done...")
     }
+    println("done...")
+  }
+
+  def clearResultPanel() {
+    numResults = 0
+    resultPane.removeAll()
+    resultPane.revalidate()
   }
 
   def pushResultPanel(term: String, tf: Array[Int]) {
@@ -42,7 +52,6 @@ class SearchPlotter(indexPath: String) {
     //UI.debugBorder(panel)
     
     numResults += 1
-    results = results :+ panel
 
     resultPane.add(panel)
     resultPane.setPreferredSize(new Dimension(GraphWidth*2, (GraphHeight+20)*numResults))

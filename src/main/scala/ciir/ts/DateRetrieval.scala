@@ -240,7 +240,7 @@ class DateRetrieval(indexDir: String) {
     var results = new RankedList[SimilarTerm](numResults)
     index.eachPosting {
       case (term, curve) => {
-        val similarityScore = Math.cosineSimilarity(curve, queryCurve)
+        val similarityScore = Math.earthMoverSimilarity(curve, queryCurve)
         results.insert(SimilarTerm(term, similarityScore, curve.clone()))
       }
     }

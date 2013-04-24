@@ -22,5 +22,26 @@ object Math {
 
     dot / (math.sqrt(magA)*math.sqrt(magB))
   }
+
+  def earthMoverSimilarity(as: Array[Int], bs: Array[Int]): Double = {
+    var runningSum = 0
+    var lastValue = 0
+    
+    var asum = 0
+    var bsum = 0
+
+    var idx = 0
+    while(idx < as.size) {
+      asum += as(idx)
+      bsum += bs(idx)
+      val currentValue = (as(idx) + lastValue) - bs(idx)
+      runningSum += math.abs(currentValue)
+      lastValue = currentValue
+
+      idx+=1
+    }
+
+    -runningSum.toDouble
+  }
 }
 

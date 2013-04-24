@@ -35,11 +35,12 @@ class SearchPlotter(indexPath: String) {
         pushResultPanel("%s %.3f".format(term,score), dates)
       }
     }
+    /*
     retrieval.findSimilarDate(dates, 20) foreach {
       case SimilarTerm(term, score, data) => {
         pushResultPanel("%s %.3f".format(term,score), data)
       }
-    }
+    }*/
     println("done...")
   }
 

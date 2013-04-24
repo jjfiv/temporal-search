@@ -35,11 +35,6 @@
       <artifactId>contrib</artifactId>
       <version>${galago.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.lemurproject.galago</groupId>
-      <artifactId>tupleflow</artifactId>
-      <version>${galago.version}</version>
-    </dependency>
 
 
     <dependency>

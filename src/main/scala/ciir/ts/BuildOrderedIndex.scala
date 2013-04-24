@@ -7,6 +7,9 @@ import org.lemurproject.galago.{tupleflow => Tupleflow}
 import GalagoCore.index.mem._
 // import corpusfilewriter
 import GalagoCore.index.corpus.CorpusFileWriter
+import GalagoCore.index.disk.{DiskIndex, PositionIndexWriter}
+import GalagoCore.retrieval.processing.ScoringContext
+import GalagoCore.index.IndexPartReader
 import GalagoCore.parse.Document
 import Tupleflow.{Parameters, FakeParameters}
 import java.util.{List => JList, HashMap => JHashMap, ArrayList => JArrayList, Arrays => JArrays}
@@ -101,5 +104,63 @@ object BuildOrderedIndex {
     println("Begin flushing index...")
     index.flushToDisk()
     println("Complete!")
+  }
+
+  def concatPostings(args: Array[String]) {
+    if(args.size < 2) {
+      Util.quit("error: expected arguments output-file input-files...")
+    }
+    val outputName = args(0)
+    val inputNames = args.tail
+
+    var outputWriter = {
+      var parms = new Parameters
+      parms.set("filename", outputName)
+      new PositionIndexWriter(new FakeParameters(parms))
+    }
+
+    var readers = inputNames.map(path => DiskIndex.openIndexComponent(path).asInstanceOf[IndexPartReader])
+    var iterators = readers.map(_.getIterator)
+
+    // while there is an iterator with more keys...
+    while(!iterators.isEmpty) {
+      val currentKey = iterators.map(_.getKeyString).min
+      var currentIters = iterators.filter(_.getKeyString == currentKey)
+
+      println("process "+currentKey+" "+currentIters.size)
+      // start entry for this word
+      outputWriter.processWord(currentIters(0).getKey)
+
+      currentIters.foreach(iter => {
+        var cIter = iter.getValueIterator.asInstanceOf[Galago.PostingsIter]
+        var ctx = new ScoringContext
+        cIter.setContext(ctx)
+        while(!cIter.isDone) {
+          val doc = cIter.currentCandidate
+          ctx.document = doc
+
+          outputWriter.processDocument(doc)
+          val extents = cIter.extents()
+          for(idx <- 0 until extents.size()) {
+            outputWriter.processPosition(extents.begin(idx))
+          }
+
+          cIter.movePast(doc)
+        }
+        
+        // step this iterator to its next key
+        iter.nextKey()
+        if(iter.isDone) {
+          println("our current iter finished!")
+        }
+      })
+
+      // remove newly finished iterators
+      iterators = iterators.filter(!_.isDone)
+    }
+
+
+    outputWriter.close()
+    assert(iterators.forall(_.isDone))
   }
 }

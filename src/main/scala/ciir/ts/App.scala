@@ -20,7 +20,9 @@ object App {
 
     ("postings-to-counts" -> ciir.ts.index.CountsMaker.main),
     ("make-date-counts" -> ciir.ts.index.CountsMaker.makeDateCounts),
-    ("similar-terms-cli" -> ciir.ts.SimilarTerms.cli),
+    ("similar-terms-cli" -> SimilarTerms.cli),
+
+    ("similar-quantized" -> SimilarTerms.quantized),
 
     ("barrel-cmp" -> DupDetect.compareBarrels),
     ("sample-book-list" -> DupDetect.sampleBooks),
@@ -31,6 +33,7 @@ object App {
     // build a part of a memory index
     // separated for memory concerns; preserves input list order
     ("build-index-part" -> BuildOrderedIndex.makeIndexPart),
+    ("concat-postings" -> BuildOrderedIndex.concatPostings),
     
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)

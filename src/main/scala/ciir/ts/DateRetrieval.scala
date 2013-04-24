@@ -240,11 +240,61 @@ class DateRetrieval(indexDir: String) {
     var results = new RankedList[SimilarTerm](numResults)
     index.eachPosting {
       case (term, curve) => {
-        val similarityScore = Math.earthMoverSimilarity(curve, queryCurve)
+        val similarityScore = Math.cosineSimilarity(curve, queryCurve)
         results.insert(SimilarTerm(term, similarityScore, curve.clone()))
       }
     }
     results.done
+  }
+
+  // group curves by quantSize year chunks and return the best matches for each time span
+  // is this a plot of meaning over time? We'll find out
+  def findSimilarQuantized(queryCurve: Array[Int], numResults: Int, quantSize: Int = 10) = {
+    assert(queryCurve.size == NumYears)
+    var numQuantiles = NumYears / quantSize
+    var results = (0 until numQuantiles).map(q => {
+      new RankedList[SimilarTerm](numResults)
+    })
+    
+    index.eachDatePosting {
+      case (term, curve) => {
+        results.indices.foreach(idx => {
+          val startIdx = idx*quantSize
+          val endIdx = startIdx + quantSize - 1
+          val subcurve = curve.slice(startIdx, endIdx)
+          val qsubcurve = queryCurve.slice(startIdx, endIdx)
+
+          // only look for matches if we have a nonzero curve in this quantile
+          if(qsubcurve.sum != 0 && subcurve.sum != 0) {
+            val score = Math.cosineSimilarity(subcurve, qsubcurve)
+            // insert the result into the quantile's bucket
+            results(idx).insert(SimilarTerm(term, score, subcurve.clone()))
+          }
+        })
+      }
+    }
+
+    val finalResults = results.map(_.done)
+
+    finalResults.zipWithIndex.foreach {
+      case (res, idx) => {
+        val quantileStart = StartYear + idx*quantSize
+        val quantileEnd = quantileStart + quantSize - 1
+        
+        val startIdx = idx*quantSize
+        val endIdx = startIdx + quantSize - 1
+        val qsubcurve = queryCurve.slice(startIdx, endIdx)
+
+        println("%d-%d - w=%d:".format(quantileStart, quantileEnd, qsubcurve.sum))
+        res.foreach {
+          case SimilarTerm(term, score, curve) => {
+            println("  %s %.3f %d".format(term, score, curve.sum))
+          }
+        }
+      }
+    }
+    
+    finalResults
   }
 
   def findSimilarDate(queryCurve: Array[Int], numResults: Int): Array[SimilarTerm] = {

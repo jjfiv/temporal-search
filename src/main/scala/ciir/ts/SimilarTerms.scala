@@ -90,5 +90,25 @@ object SimilarTerms {
       }
     }
   }
+
+  def quantized(args: Array[String]) {
+    if(args.size != 4) {
+      Util.quit("expected args: index-dir query years-per-quantile num-results-per-quantile")
+    }
+
+    val dates = new DateRetrieval(args(0))
+    val query = args(1)
+    val qSize = args(2).toInt
+    val nRes = args(3).toInt
+
+    println("# Initial Search:")
+    val tfv = dates.search(query)
+    val dv = dates.toDateVector(tfv)
+    
+    println("# Similarity Search:")
+    
+    dates.findSimilarQuantized(dv, nRes, qSize)
+    println("")
+  }
 }
 

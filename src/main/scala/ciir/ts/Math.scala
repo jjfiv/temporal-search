@@ -41,7 +41,23 @@ object Math {
       idx+=1
     }
 
-    -runningSum.toDouble
+    - runningSum.toDouble
+  }
+
+  def squaredSimilarity(as: Array[Int], bs: Array[Int]): Double = {
+    var sum = 0.0
+
+    var idx = 0
+    while(idx < as.size) {
+      val ai = as(idx).toDouble
+      val bi = bs(idx).toDouble
+      
+      sum += (ai-bi)*(ai-bi)
+
+      idx += 1
+    }
+
+    - math.log(sum)
   }
 }
 

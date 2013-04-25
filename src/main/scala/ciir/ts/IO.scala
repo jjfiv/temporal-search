@@ -115,13 +115,13 @@ class CharacterStream(path: String) {
   private var fp = IO.textInputStream(path)
   private var buf = new collection.mutable.Queue[Char]()
 
-  private def getc() = fp.read()
+  private def fgetc() = fp.read()
   // Try to make sure the internal buffer is of a given length
   // obviously, the real file may not cooperate
-  private def tryEnsureLength(len: Int) {
+  private def tryEnsureLength(len: Int): Boolean = {
     var idx = buf.size
     while(idx < len) {
-      val next = getc()
+      val next = fgetc()
       if(next == -1) {
         return false; // can't make it the right length
       }
@@ -159,7 +159,7 @@ class CharacterStream(path: String) {
         return None
       }
     }
-    return Some(buf.takeWhile(_ != marker))
+    return Some(buf.takeWhile(_ != marker).toString)
   }
   def peekMatches(str: String): Boolean = {
     peek(str.size) match {
@@ -169,7 +169,7 @@ class CharacterStream(path: String) {
   }
 
   // if you subsist upon peeks alone, you'll be dropping often
-  def drop(amt: Int) {
+  def drop(amt: Int = 1) {
     buf = buf.drop(amt)
   }
   def dropUntil(marker: Char) {
@@ -190,6 +190,22 @@ class CharacterStream(path: String) {
   def getUntil(marker: Char): Option[String] = {
     val res = peekUntil(marker)
     dropUntil(marker)
+    res
+  }
+  def getWhile(op: Char=>Boolean): Option[String] = {
+    var done = false
+    var sb = new StringBuilder
+    
+    while(!done) {
+      val next = peek
+      if(next == -1 || !op(next.toChar)) {
+        done = true
+      } else {
+        sb += get().toChar
+      }
+    }
+    
+    if(sb.nonEmpty) Some(sb.result) else None
   }
   def getIncluding(marker: Char): Option[String] = {
     getUntil(marker) match {

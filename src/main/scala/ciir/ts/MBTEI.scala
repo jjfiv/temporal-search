@@ -25,9 +25,9 @@ object MBTEI {
 }
 
 class MBTEIWordReader(path: String) extends CharacterStream(path) {
-  private def skipUntil(marker: Char) {
+  private def skipIncluding(marker: Char) {
     while(true) {
-      val ch = getc()
+      val ch = get()
       if(ch == -1 || ch == marker) return
       
       // in XML, all escaped quotes are of the form &quot;
@@ -39,7 +39,7 @@ class MBTEIWordReader(path: String) extends CharacterStream(path) {
     var sb = new StringBuilder
     var done = false
     while(!done) {
-      val x = getc()
+      val x = get()
       val ch = x.toChar
       if(x == -1 || ch == marker) {
         done = true
@@ -57,14 +57,16 @@ class MBTEIWordReader(path: String) extends CharacterStream(path) {
     }
     sb.result
   }
+  def nextTag(): Option[String] = {
+    skipIncluding('<')
+    getWhile(ch => ch != '>' && !ch.isWhitespace)
+  }
   def nextWord(): Option[String] = {
     // looks for <w.*> and saves contents
     while(true) {
-      skipUntil('<')
+      skipIncluding('<')
 
-      if(done()) {
-        return None
-      }
+      if(done()) return None
 
       if(peekMatches("w ") || peekMatches("w>")) {
         dropUntil('>')

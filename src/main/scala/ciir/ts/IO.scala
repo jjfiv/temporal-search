@@ -119,8 +119,7 @@ class CharacterStream(path: String) {
   // Try to make sure the internal buffer is of a given length
   // obviously, the real file may not cooperate
   private def tryEnsureLength(len: Int): Boolean = {
-    var idx = buf.size
-    while(idx < len) {
+    while(buf.size < len) {
       val next = fgetc()
       if(next == -1) {
         return false; // can't make it the right length
@@ -129,10 +128,12 @@ class CharacterStream(path: String) {
     }
     true
   }
-  private def growBuffer() = tryEnsureLength(buf.size*2)
+  private def growBuffer() = tryEnsureLength(math.max(1,buf.size*2))
   private def fromBuf(idx: Int) = {
     // grow exponentiallly in size as we need more
-    if(idx >= buf.size) growBuffer()
+    if(idx >= buf.size) {
+      growBuffer()
+    }
 
     // return the character or else EOF
     if(idx < buf.size) buf(idx) else -1

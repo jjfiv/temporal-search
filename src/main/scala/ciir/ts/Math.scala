@@ -97,5 +97,32 @@ object Math {
   def JSSimilarity(as: Array[Int], bs: Array[Int]): Double = {
     1.0 - JSDivergenceFlat(as,bs)
   }
+
+  def min3(x: Int, y: Int, z: Int) = {
+    math.min(x,math.min(y,z))
+  }
+  def DTWDistance(as: Array[Int], bs: Array[Int], window: Int) = {
+    val N = as.size
+    var table = Array.fill(N+1,N+1) { Int.MaxValue }
+    table(0)(0) = 0
+
+    var ii = 1
+    while(ii <= N) {
+      var jj = math.max(1,ii-window)
+      while(jj <= math.min(N, ii+window)) {
+        val cost = math.abs(as(ii-1) - bs(jj-1))
+        table(ii)(jj) = cost + min3(table(ii-1)(jj),
+                                    table(ii)(jj-1),
+                                    table(ii-1)(jj-1))
+
+        jj+=1
+      }
+      ii+=1
+    }
+    table(N)(N)
+  }
+  def DTWSimilarity(as: Array[Int], bs: Array[Int]) = {
+    - DTWDistance(as, bs, 100) // amount of year flexibility, hard coded as 10 for me for now
+  }
 }
 

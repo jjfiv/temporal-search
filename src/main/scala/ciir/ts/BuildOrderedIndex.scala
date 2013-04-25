@@ -38,7 +38,7 @@ object BuildOrderedIndex {
   def buildDoc(num: Int, path: String): Document = {
     import collection.JavaConversions._
     
-    val metadata = XMLStream.simpleGetKeys(path, Set("identifier","title", "date"))
+    val metadata = XMLStream.simpleGetKeys(path, Set("identifier","title", "date", "year", "creator", "author"))
     val words = {
       val normaled = MBTEI.words(path).map(_.toLowerCase.filter(_.isLetterOrDigit))
       normaled.filter(!_.isEmpty)

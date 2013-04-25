@@ -146,12 +146,30 @@ class CharacterStream(path: String) {
     buf.clear()
     fp.close()
   }
+  // count method
+  def countWhile(pred: Char=>Boolean): Int = {
+    var count = 0
+    while(true) {
+      val next = fromBuf(count)
+      
+      if(next == -1) {
+        // if we hit an end of file, we have some result or nothing
+        if(count == 0) { return -1 } else { return count }
+      } else if(!pred(next.toChar)) {
+        // if we hit a non-matching char we have some result, whether it's empty or not
+        return count
+      } else {
+        count += 1
+      }
+    }
+    -1
+  }
 
   // peek methods
-  def peek: Int = fromBuf(0)
+  def peek(): Int = fromBuf(0)
   def peek(count: Int): Option[String] = {
     if(!tryEnsureLength(count)) return None
-    Some(buf.take(count).toString)
+    Some(buf.take(count).mkString)
   }
   def peekUntil(marker: Char): Option[String] = {
     // grow the buffer until it contains the marker we're looking for
@@ -160,7 +178,14 @@ class CharacterStream(path: String) {
         return None
       }
     }
-    return Some(buf.takeWhile(_ != marker).toString)
+    return Some(buf.takeWhile(_ != marker).mkString)
+  }
+  def peekWhile(pred: Char=>Boolean): Option[String] = {
+    countWhile(pred) match {
+      case -1 => None
+      case 0 => Some("")
+      case x => peek(x)
+    }
   }
   def peekMatches(str: String): Boolean = {
     peek(str.size) match {
@@ -171,17 +196,27 @@ class CharacterStream(path: String) {
 
   // if you subsist upon peeks alone, you'll be dropping often
   def drop(amt: Int = 1) {
-    buf = buf.drop(amt)
+    if(amt > 0) {
+      buf = buf.drop(amt)
+    }
   }
   def dropUntil(marker: Char) {
+    peekUntil(marker)
     buf = buf.dropWhile(_ != marker)
   }
   def dropIncluding(marker: Char) {
     dropUntil(marker); drop()
   }
+  def dropWhile(pred: Char=>Boolean) {
+    drop(countWhile(pred))
+  }
   // get methods
   def get(): Int = {
-    if(tryEnsureLength(1)) buf.dequeue() else -1
+    if(buf.size > 0) {
+      val ch = buf.head
+      drop(1)
+      ch
+    } else fgetc()
   }
   def get(count: Int): Option[String] = {
     val res = peek(count)
@@ -193,20 +228,12 @@ class CharacterStream(path: String) {
     dropUntil(marker)
     res
   }
-  def getWhile(op: Char=>Boolean): Option[String] = {
-    var done = false
-    var sb = new StringBuilder
-    
-    while(!done) {
-      val next = peek
-      if(next == -1 || !op(next.toChar)) {
-        done = true
-      } else {
-        sb += get().toChar
-      }
+  def getWhile(pred: Char=>Boolean): Option[String] = {
+    countWhile(pred) match {
+      case -1 => None
+      case 0 => Some("")
+      case x => get(x)
     }
-    
-    if(sb.nonEmpty) Some(sb.result) else None
   }
   def getIncluding(marker: Char): Option[String] = {
     getUntil(marker) match {
@@ -218,6 +245,13 @@ class CharacterStream(path: String) {
         }
       }
     }
+  }
+  def getLine(): Option[String] = {
+    val newlineChars = Set('\r','\n')
+    val str = getWhile(!newlineChars.contains(_))
+    if(peek == '\r') drop(1)
+    if(peek == '\n') drop(1)
+    str
   }
 }
 
@@ -266,13 +300,9 @@ class XMLStream(path: String) extends CharacterStream(path) {
   def nextTag(): Option[String] = {
     dropIncluding('<')
 
-    if(done()) {
-      None
-    } else {
-      val tag = getUntil('>');
-      drop() // the '>' character
-      tag
-    }
+    val tag = getUntil('>');
+    drop() // the '>' character
+    tag
   }
   def nextData(): String = { getUntil('<').getOrElse("") }
 }

@@ -24,25 +24,15 @@ object MBTEI {
   }
 }
 
-class MBTEIWordReader(path: String) {
-  private var fp = IO.textInputStream(path)
-
-  def close() = fp.close()
-  private def getc() = fp.read()
-  private def skipQuoteContents() {
-    // in XML, all escaped quotes are of the form &quot;
-    // no backslash handling needed, afaik
-    while(true) {
-      val ch = getc() 
-      if(ch == -1 || ch == '"')
-        return
-    }
-  }
+class MBTEIWordReader(path: String) extends CharacterStream(path) {
   private def skipUntil(marker: Char) {
     while(true) {
       val ch = getc()
       if(ch == -1 || ch == marker) return
-      if(ch == '"') skipQuoteContents()
+      
+      // in XML, all escaped quotes are of the form &quot;
+      // no backslash handling needed, afaik
+      if(ch == '"') dropUntil('"')
     }
   }
   private def readUntil(marker: Char): String = {
@@ -72,17 +62,12 @@ class MBTEIWordReader(path: String) {
     while(true) {
       skipUntil('<')
 
-      val first = getc()
-      val second = getc()
-      if(first == -1 || second == -1) return None
+      if(done()) {
+        return None
+      }
 
-      val ch0 = first.toChar
-      val ch1 = second.toChar
-      
-      if(ch0 == 'w' && (ch1.isWhitespace || ch1 == '>')) {
-        if(ch1 != '>')
-          skipUntil('>')
-        
+      if(peekMatches("w ") || peekMatches("w>")) {
+        dropUntil('>')
         // ignore empty tags: <w></w>
         val contents = readUntil('<')
         if(contents.size != 0)

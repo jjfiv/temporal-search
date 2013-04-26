@@ -140,10 +140,14 @@ class BasicIndex(var index: Galago.Index) {
     }
     
     var keyIter = bestIndexPart.getIterator
+
+    var count = 0
     
     Util.timed("iterate over all counts:", {
       Galago.keys(keyIter) {
         var data = new Array[Int](numDocs)
+
+        if(count % 10000 == 0) { println(count) }
 
         // read in posting list, accumulate counts
         var cIter = keyIter.getValueIterator.asInstanceOf[Galago.CountsIter]
@@ -151,6 +155,7 @@ class BasicIndex(var index: Galago.Index) {
         
         // handle this posting
         op(keyIter.getKeyString, data)
+        count += 1
       }
     })
   }
@@ -238,9 +243,11 @@ class DateRetrieval(indexDir: String) {
 
   def findSimilarTF(queryCurve: Array[Int], numResults: Int): Array[SimilarTerm] = {
     var results = new RankedList[SimilarTerm](numResults)
+    var comparer = new DTWSimilarity(queryCurve, 10)
     index.eachPosting {
       case (term, curve) => {
-        val similarityScore = Math.DTWSimilarity(curve, queryCurve)
+        //val similarityScore = Math.DTWSimilarity(curve, queryCurve)
+        val similarityScore = comparer(curve)
         results.insert(SimilarTerm(term, similarityScore, curve.clone()))
       }
     }

@@ -122,7 +122,7 @@ object Math {
     table(N)(N)
   }
   def DTWSimilarity(as: Array[Int], bs: Array[Int]) = {
-    - DTWDistance(as, bs, 100) // amount of year flexibility, hard coded as 10 for me for now
+    - DTWDistance(as, bs, 10) // amount of year flexibility, hard coded as 10 for me for now
   }
 }
 

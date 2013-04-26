@@ -68,3 +68,35 @@ class DTWSimilarity(qs: Array[Int], val windowSize: Int) extends SimilarityMetho
   def apply(xs: Array[Int]) = -difference(xs)
 }
 
+class JSSimilarity(qs: Array[Int]) extends SimilarityMethod(qs) {
+  val qSum = qs.sum.toDouble
+  val qds = qs.map(_.toDouble / qSum)
+
+  def difference(xs: Array[Int]) = {
+    val xSum = xs.sum.toDouble
+    
+    // do the calculation of m, KL(a,m) and KL(b,m) in one loop for efficiency
+    var qmScore = 0.0
+    var xmScore = 0.0
+    var idx = 0
+    while(idx < dimension) {
+      val qi = qds(idx)
+      val xi = xs(idx).toDouble / xSum
+      val mi = qi + xi / 2.0
+
+      if(qi != 0) {
+        qmScore += math.log(qi/mi) * qi
+      }
+      if(xi != 0) {
+        xmScore += math.log(xi/mi) * xi
+      }
+
+      idx += 1
+    }
+    
+    (qmScore + xmScore) / 2.0
+  }
+
+  def apply(xs: Array[Int]) = -difference(xs)
+}
+

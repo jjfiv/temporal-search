@@ -105,7 +105,7 @@ object IO {
   }
 
   def printToFile(fileName: String, op: PrintWriter=>Unit) {
-    var p = new PrintWriter(new File(fileName))
+    var p = textOutputStream(fileName)
     try { op(p) } finally { p.close() }
   }
 

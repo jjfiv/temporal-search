@@ -4,46 +4,6 @@ import gnu.trove.map.hash.{TIntIntHashMap, TIntLongHashMap}
 import gnu.trove.set.hash.{TIntHashSet, TLongHashSet}
 import collection.mutable.ArrayBuilder
 
-object Statistics {
-  def mean(xs: Array[Int]) = {
-    xs.sum.toDouble / xs.size.toDouble
-  }
-  def mean(xs: Array[Double]) = {
-    xs.sum / xs.size
-  }
-  def median(xs: Array[Int]): Double = {
-    val tmp = xs.sorted
-    val mid = tmp.size/2
-    if(tmp.size % 2 == 1) {
-      tmp(mid)
-    } else {
-      (tmp(mid-1) + tmp(mid)) / 2
-    }
-  }
-  def variance(xs: Array[Int]) = {
-    val mu = mean(xs)
-    mean(xs.map(x =>{
-      val off = x.toDouble - mu
-      off*off
-    }))
-  }
-  def maxIndex(xs: Array[Int]) = { 
-    xs.zipWithIndex.maxBy(_._1)._2
-  }
-  def minIndex(xs: Array[Int]) = { 
-    xs.zipWithIndex.minBy(_._1)._2
-  }
-  
-  def summary(data: Array[Int], base: Int=0) = {
-    println("  total: "+data.sum)
-    println("  max: "+data.max+" in "+(base+maxIndex(data)))
-    println("  mean: "+mean(data))
-    println("  variance: "+variance(data))
-    println("  median: "+median(data))
-    println("  min: "+data.min+" in "+(base+minIndex(data)))
-  }
-}
-
 
 object SimilarTerms {
   def cli(args: Array[String]) {

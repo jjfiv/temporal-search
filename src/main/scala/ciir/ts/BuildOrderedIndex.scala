@@ -22,7 +22,7 @@ sealed trait IndexPartStream {
 class CorpusStream(path: String) extends IndexPartStream {
   var corpusWriter = {
     var corpusParms = new Parameters
-    corpusParms.set("filename", path+"/corpus")
+    corpusParms.set("filename", path)
     new CorpusFileWriter(new FakeParameters(corpusParms))
   }
   override def addDocument(doc: Document) { corpusWriter.process(doc) }
@@ -55,11 +55,26 @@ object BuildOrderedIndex {
     d
   }
 
+  def readDoc(num: Int, path: String): Document = {
+    import collection.JavaConversions._
+    val (metadata, words, text) = MBTEI.parse(path, true, true, true)
+
+    var d = new Document
+    d.name = metadata.getOrElse("identifier", "doc-"+num)
+    d.text = text
+    d.terms = words.toSeq
+    d.tags = new JArrayList()
+    d.metadata = new JHashMap(metadata)
+    d.identifier = num
+
+    d
+  }
+
   def makeIndexPart(args: Array[String]) {
-    if(args.size != 3) {
+    if(args.size != 3 && args.size != 4) {
       val allowedParts = Array("corpus","names","lengths","extents","postings","postings.porter")
       Util.quit(
-        "expected arguments: listFile indexPartName indexDir [postings-chars]\n" +
+        "expected arguments: listFile indexPartName indexDir [documentNumber]\n" +
         allowedParts.mkString("  indexPartName = {",", ","}")
         )
     }
@@ -67,12 +82,19 @@ object BuildOrderedIndex {
     val documentList = IO.fileLines(args(0))
     val partName = args(1)
     val indexDir = args(2)
+    val docNumStart = if(args.size == 4) args(3).toInt else 0
 
     // check output directory at start:
     IO.requireDirectory(indexDir)
 
     var index: IndexPartStream = {
-      val path = indexDir+"/"+partName
+      val path = {
+        var base = indexDir+"/"+partName
+        if(docNumStart != 0)
+          base+"-"+docNumStart
+        else
+          base
+      }
       partName match {
         case "corpus" => new CorpusStream(path)
         case "names" =>
@@ -96,8 +118,9 @@ object BuildOrderedIndex {
 
     documentList.zipWithIndex.foreach{
       case (path, idx) => {
-        println("doc "+idx+" "+path+" | "+Util.MiB(Util.usedMem)+" MiB")
-        index.addDocument(buildDoc(idx, path))
+        val num = docNumStart + idx
+        println("doc "+num+" "+path+" | "+Util.MiB(Util.usedMem)+" MiB")
+        index.addDocument(buildDoc(num, path))
       }
     }
     

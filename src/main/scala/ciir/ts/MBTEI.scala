@@ -140,7 +140,7 @@ class MBTEIReader(path: String) extends CharacterStream(path) {
           if(contents.size != 0)
             return Some(contents)
         }
-        case Some(t) => { println("tag: "+t) }
+        case Some(t) => { }
         case None => return None
       }
     }

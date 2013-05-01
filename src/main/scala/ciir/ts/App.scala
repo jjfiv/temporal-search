@@ -34,7 +34,6 @@ object App {
     // separated for memory concerns; preserves input list order
     ("build-index-part" -> BuildOrderedIndex.makeIndexPart),
     ("concat-postings" -> BuildOrderedIndex.concatPostings),
-    ("fix-postings" -> Throwaway.fixNumbers),
     
     // invoke the galago main()
     ("invoke-galago" -> org.lemurproject.galago.core.tools.App.run)

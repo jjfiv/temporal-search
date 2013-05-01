@@ -187,3 +187,54 @@ object BuildOrderedIndex {
     assert(iterators.forall(_.isDone))
   }
 }
+
+object Throwaway {
+  def fixNumbers(args: Array[String]) {
+    if(args.size != 1) {
+      Util.quit("error: expected input-file")
+    }
+    val inputName = args(0)
+    val outputName = inputName+"_fixed"
+
+    var outputWriter = {
+      var parms = new Parameters
+      parms.set("filename", outputName)
+      new PositionIndexWriter(new FakeParameters(parms))
+    }
+
+    def fixDoc(x: Int) = {
+      val bucket = x / 1500
+      val relpos = x % 1500
+      val result = (bucket * 1000) + relpos
+      assert(result >= 0 && result <= 10000)
+      result
+    }
+
+    val reader = DiskIndex.openIndexComponent(inputName).asInstanceOf[IndexPartReader]
+    var iterator = reader.getIterator
+
+    while(!iterator.isDone) {
+      outputWriter.processWord(iterator.getKey)
+      println("fix "+iterator.getKeyString)
+
+      var cIter = iterator.getValueIterator.asInstanceOf[Galago.PostingsIter]
+      var ctx = new ScoringContext
+      cIter.setContext(ctx)
+      while(!cIter.isDone) {
+        val doc = cIter.currentCandidate
+        ctx.document = doc
+
+        outputWriter.processDocument(fixDoc(doc))
+        val extents = cIter.extents()
+        for(idx <- 0 until extents.size()) {
+          outputWriter.processPosition(extents.begin(idx))
+        }
+        cIter.movePast(doc)
+      }
+      
+      iterator.nextKey()
+    }
+
+    outputWriter.close()
+  }
+}

@@ -102,7 +102,7 @@ class BasicIndex(var index: Galago.Index) {
 
   def eachPosting(op: (String,Array[Int])=>Unit) {
     val bestIndexPart = {
-      Set("just-counts", "counts", "postings", "postings.porter").map(index.getIndexPart).filter(_ != null).head
+      Set("counts+15", "postings", "postings.porter").map(index.getIndexPart).filter(_ != null).head
     }
     
     var keyIter = bestIndexPart.getIterator
@@ -159,11 +159,12 @@ class DateRetrieval(indexDir: String) {
 
   def numDocs = index.numDocs
   def getDocName(id: Int) = index.getDocName(id)
+  def getDate(id: Int) = dateInfo.getDate(id)
 
   def dateSearch(query: String): Array[DocDateScore] = {
     Galago.doCountsQuery(retrieval, numDocs, query).flatMap {
       case DocCount(doc, count) => {
-        val date = dateInfo.getDate(doc)
+        val date = getDate(doc)
         if(validDate(date)) {
           Some(DocDateScore(doc, date, count))
         } else None
@@ -182,7 +183,7 @@ class DateRetrieval(indexDir: String) {
     var dateTF = new Array[Int](NumYears)
     tfVector.zipWithIndex.foreach {
       case (count, doc) => {
-        val date = dateInfo.getDate(doc)
+        val date = getDate(doc)
         if(validDate(date)) {
           dateTF(date - StartYear) += count
         }

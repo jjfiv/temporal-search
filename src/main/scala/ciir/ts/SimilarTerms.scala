@@ -51,6 +51,32 @@ object SimilarTerms {
     }
   }
 
+  def outputDocCSV(args: Array[String]) {
+    if(args.size < 2) {
+      Util.quit("expected args: index-dir queries...")
+    }
+
+    val dates = new DateRetrieval(args.head)
+    val queries = args.tail
+
+
+    var header = false
+    
+    queries.foreach(query => {
+      val tfv = dates.search(query)
+      if(!header) {
+        println("Document,"+tfv.indices.map(doc => {
+          val date = dates.getDate(doc)
+          if(date == -1) {
+            1920
+          } else date
+        }).mkString(","))
+        header = true
+      }
+      println(query+","+tfv.mkString(","))
+    })
+  }
+
   def quantized(args: Array[String]) {
     if(args.size != 4) {
       Util.quit("expected args: index-dir query years-per-quantile num-results-per-quantile")

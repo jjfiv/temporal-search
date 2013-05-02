@@ -66,6 +66,8 @@ object Galago {
     })
     val iterName = classOf[CountsScorer].getName()
     StructuredQuery.parse("#feature:class="+iterName+"("+cleaned+")")
+    // optionally force part?
+    //StructuredQuery.parse("#feature:class="+iterName+"(#lengths:document:part=lengths() #extents:"+cleaned+":part=postings() )")
   }
 
   def doCountsQuery(retrieval: Retrieval, count: Int, query: String): Array[DocCount] = {
@@ -77,6 +79,8 @@ object Galago {
     
     val request = retrieval.transformQuery(parseCountsQuery(query), searchParms)
     val scored = retrieval.runQuery(request, searchParms)
+
+    //Console.err.println(request)
     
     if(scored == null) return Array()
     

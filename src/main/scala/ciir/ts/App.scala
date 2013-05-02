@@ -23,6 +23,8 @@ object App {
     ("similar-terms-cli" -> SimilarTerms.cli),
 
     ("similar-quantized" -> SimilarTerms.quantized),
+    
+    ("output-doc-csv" -> SimilarTerms.outputDocCSV),
 
     ("barrel-cmp" -> DupDetect.compareBarrels),
     ("sample-book-list" -> DupDetect.sampleBooks),

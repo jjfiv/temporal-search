@@ -12,8 +12,12 @@ def streamCmd(cmd):
 if __name__ == '__main__':
   relArgs = sys.argv[1:]
   fixedArgs = []
+  quiet = False
+
   for arg in relArgs:
-    if os.path.sep in arg:
+    if arg == '-q':
+      quiet = True
+    elif os.path.sep in arg:
       fixedArgs += [os.path.abspath(arg)]
     else:
       fixedArgs += [arg]
@@ -26,5 +30,6 @@ if __name__ == '__main__':
 
   if rc != 0:
     print("rc: "+str(rc))
-  print("COMPILE/RUN TIME: %1.3fs" % (endTime-startTime))
+  if not quiet:
+    print("COMPILE/RUN TIME: %1.3fs" % (endTime-startTime))
 

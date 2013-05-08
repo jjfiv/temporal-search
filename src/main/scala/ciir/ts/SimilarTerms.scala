@@ -61,19 +61,14 @@ object SimilarTerms {
 
 
     var header = false
-    
+
     queries.foreach(query => {
-      val tfv = dates.search(query)
+      val dv = dates.toDateVector(dates.search(query))
       if(!header) {
-        println("Document,"+tfv.indices.map(doc => {
-          val date = dates.getDate(doc)
-          if(date == -1) {
-            1920
-          } else date
-        }).mkString(","))
+        println("Document,"+dv.indices.map(idx => { dates.StartYear + idx }).mkString(","))
         header = true
       }
-      println(query+","+tfv.mkString(","))
+      println(query+","+dv.mkString(","))
     })
   }
 
@@ -95,6 +90,33 @@ object SimilarTerms {
     
     dates.findSimilarQuantized(dv, nRes, qSize)
     println("")
+  }
+
+  def ofPairs(args: Array[String]) {
+    if(args.size != 2) {
+      Util.quit("expected args: index-dir pairs.csv")
+    }
+
+
+    val dates = new DateRetrieval(args(0))
+    val wordPairs = IO.fileLines(args(1)).foreach(_.split("\\s+") match {
+      case Array(w1, w2, mturk) => {
+        val humanScore = mturk.toDouble
+        
+        val tf1 = dates.search(w1)
+        val dv1 = dates.toDateVector(tf1)
+        val tf2 = dates.search(w2)
+        val dv2 = dates.toDateVector(tf2)
+    
+
+        printf("%s,%s,%.3f,", w1, w2, humanScore)
+        printf("%.3f,%.3f,", Math.squaredSimilarity(tf1, tf2), Math.squaredSimilarity(dv1, dv2))
+        printf("%.3f,%.3f,", Math.cosineSimilarity(tf1, tf2), Math.cosineSimilarity(dv1, dv2))
+        printf("%.3f,%.3f,", Math.JSSimilarity(tf1, tf2), Math.JSSimilarity(dv1, dv2))
+        printf("%d,%d\n", Math.DTWSimilarity(tf1, tf2), Math.DTWSimilarity(dv1, dv2))
+      }
+    })
+
   }
 }
 

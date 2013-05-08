@@ -124,6 +124,22 @@ object Math {
   def DTWSimilarity(as: Array[Int], bs: Array[Int]) = {
     - DTWDistance(as, bs, 10) // amount of year flexibility, hard coded as 10 for me for now
   }
+
+  def movingAverage(input: Array[Int], window: Int=5) = {
+    val windows = input.size - (window - 1)
+    val output = new Array[Int](windows)
+    
+    output.indices.foreach(i => {
+      (0 until window).foreach(j => {
+        output(i) += input(i+j)
+        j+=1
+      })
+    })
+    output.indices.foreach(i => {
+      output(i) = (output(i).toDouble / window.toDouble).toInt
+    })
+    output
+  }
 }
 
 object Statistics {

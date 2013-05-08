@@ -32,6 +32,8 @@ object App {
     ("count-books" -> CountBooksByDate.run),
     ("count-books-by-date" -> CountBooksByDate.dateLists),
 
+    ("eval-word-pairs" -> SimilarTerms.ofPairs),
+
     // build a part of a memory index
     // separated for memory concerns; preserves input list order
     ("build-index-part" -> BuildOrderedIndex.makeIndexPart),

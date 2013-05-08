@@ -84,7 +84,7 @@ object CountsMaker {
     if(dates.index.hasPart("date-counts"))
       Util.quit("given index already has `date-counts`")
     
-    var inputReader = dates.index.getPart("just-counts")
+    var inputReader = dates.index.getPart("counts+15")
 
     var outputWriter = {
       var parms = new Parameters

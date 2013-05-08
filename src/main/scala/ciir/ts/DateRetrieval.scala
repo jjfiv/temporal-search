@@ -15,14 +15,18 @@ class LocalDateInfo(val numDocs: Int, val retrieval: Galago.Retrieval) {
     
     val doc = retrieval.getDocument(documentName, parms)
     val metadata = doc.metadata
-    var dateStr = metadata.get("date")
+    var (yearStr,dateStr) = (metadata.get("year"), metadata.get("date"))
     
-    if(dateStr == null) { return -1 }
+    if(yearStr == null && dateStr == null) { return -1 }
+
+    if(yearStr != null) {
+      dateStr = yearStr
+    }
     
     dateStr = dateStr.filter(_.isDigit)
     try {
       val numericDate = dateStr.toInt
-      if(numericDate < 0 || numericDate > 2013)
+      if(numericDate < 1820 || numericDate > 1919)
         return -1
       numericDate
     } catch {
@@ -79,8 +83,6 @@ case class SimilarTerm(val key: String, val score: Double, val data: Array[Int])
 }
 
 class BasicIndex(var index: Galago.Index) {
-  val postings = index.getIndexPart("postings")
-  //val counts = index.getIndexPart("just-counts")
   val (numDocs, maxTFVector) ={
     var size = 0
     var tfVector = new ArrayBuilder.ofInt

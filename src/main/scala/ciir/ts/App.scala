@@ -35,6 +35,10 @@ object App {
     ("eval-word-pairs" -> SimilarTerms.ofPairs),
     ("comparison" -> SimilarTerms.comparison),
 
+    ("take-from-list" -> TextIndex.chooseFromList),
+    ("filter-words" -> TextIndex.filterWords),
+    ("create-txt-postings" -> TextIndex.create),
+
     // build a part of a memory index
     // separated for memory concerns; preserves input list order
     ("build-index-part" -> BuildOrderedIndex.makeIndexPart),

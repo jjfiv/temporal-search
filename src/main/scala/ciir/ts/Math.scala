@@ -132,7 +132,6 @@ object Math {
     output.indices.foreach(i => {
       (0 until window).foreach(j => {
         output(i) += input(i+j)
-        j+=1
       })
     })
     output.indices.foreach(i => {

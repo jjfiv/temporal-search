@@ -33,6 +33,7 @@ object App {
     ("count-books-by-date" -> CountBooksByDate.dateLists),
 
     ("eval-word-pairs" -> SimilarTerms.ofPairs),
+    ("comparison" -> SimilarTerms.comparison),
 
     // build a part of a memory index
     // separated for memory concerns; preserves input list order

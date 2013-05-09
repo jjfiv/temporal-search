@@ -276,9 +276,12 @@ class DateRetrieval(indexDir: String) {
   def findSimilarDate(queryCurve: Array[Int], numResults: Int): Array[SimilarTerm] = {
     assert(queryCurve.size == NumYears)
     var results = new RankedList[SimilarTerm](numResults)
+    val cmp = new DTWSimilarity(queryCurve, 10)
+
     index.eachDatePosting {
       case (term, curve) => {
-        val similarityScore = Math.cosineSimilarity(curve, queryCurve)
+        //val similarityScore = Math.cosineSimilarity(curve, queryCurve)
+        val similarityScore = cmp(queryCurve)
         results.insert(SimilarTerm(term, similarityScore, curve.clone()))
       }
     }

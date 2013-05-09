@@ -92,6 +92,34 @@ object SimilarTerms {
     println("")
   }
 
+  def comparison(args: Array[String]) {
+    if(args.size != 3) {
+      Util.quit("expected args: index-dir query num-results")
+    }
+
+    val dates = new DateRetrieval(args(0))
+    val query = args(1)
+    val nRes = args(2).toInt
+
+    println("# Initial Search:")
+    val tfv = dates.search(query)
+    val dv = dates.toDateVector(tfv)
+    
+    println("# Similarity Search:")
+    
+    //Util.timed("similarTF:", {
+    //  dates.findSimilarTF(tfv, nRes).foreach {
+    //    case SimilarTerm(term, score, _) => println(term+" "+score)
+    //  }
+    //})
+    Util.timed("similarDate:", {
+      dates.findSimilarDate(dv, nRes).foreach {
+        case SimilarTerm(term, score, _) => println(term+" "+score)
+      }
+    })
+    
+  }
+
   def ofPairs(args: Array[String]) {
     if(args.size != 2) {
       Util.quit("expected args: index-dir pairs.csv")

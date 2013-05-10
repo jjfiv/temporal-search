@@ -117,6 +117,29 @@ object TextIndex {
     }
   }
 
+  def findSimilar(args: Array[String]) {
+    if(args.size < 2) {
+      Util.quit("error: expected -> index-csv queries...")
+    }
+
+    val queries = args.tail
+
+    val termData = IO.fileLines(args(0)).map(line => {
+      val cells = line.split(" ")
+      val term = cells(0)
+      val data = wrapIntArray(cells.tail.map(_.toInt).toArray)
+      (term, data)
+    }).toMap
+
+    println("term,"+(1820 to 1919).mkString(","))
+    queries.foreach(q => {
+      termData.get(q) match {
+        case Some(res) => println(q+","+res.mkString(","))
+        case None => Console.err.println(q+" was not found!")
+      }
+    })
+  }
+
 }
 
 class SortedWordData(path: String, val index: Int) {

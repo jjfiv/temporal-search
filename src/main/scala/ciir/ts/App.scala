@@ -38,6 +38,7 @@ object App {
     ("take-from-list" -> TextIndex.chooseFromList),
     ("filter-words" -> TextIndex.filterWords),
     ("create-txt-postings" -> TextIndex.create),
+    ("txt-find-similar" -> TextIndex.findSimilar),
 
     // build a part of a memory index
     // separated for memory concerns; preserves input list order

@@ -47,10 +47,13 @@ if __name__ == '__main__':
 
   fig = plt.figure()
   ax = fig.add_subplot(111)
+  ax.set_xlabel("Year")
+  ax.set_ylabel("Occurrences")
   
   for name, curve in curves:
     ax.plot(Xdata, curve, label=name)
 
+  ax.legend()
 
   plt.show()
 

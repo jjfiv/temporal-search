@@ -117,29 +117,148 @@ object TextIndex {
     }
   }
 
+  def cosineSimilarity(as: Array[Double], bs: Array[Double]): Double = {
+    assert(as.size == bs.size)
+
+    var dot = 0.0
+    var magA = 0.0
+    var magB = 0.0
+
+    var idx = 0
+    while(idx < as.size) {
+      val ai = as(idx)
+      val bi = bs(idx)
+      
+      dot += ai*bi
+      magA += ai*ai
+      magB += bi*bi
+
+      idx += 1
+    }
+
+    dot / (math.sqrt(magA)*math.sqrt(magB))
+  }
+  def cosineDiff(as: Array[Double], bs: Array[Double]): Double = 1.0 - cosineSimilarity(as, bs)
+
   def findSimilar(args: Array[String]) {
+    if(args.size != 4) {
+      Util.quit("error: expected -> index-csv method count query")
+    }
+
+    val index = new CSVIndex(args(0))
+    val method = args(1)
+    val numResults = args(2).toInt
+    val query = args(3)
+
+    if(!index.prob.contains(query)) {
+      return
+    }
+
+    val comparison = method match {
+      case "cos" => cosineSimilarity _
+      case "cos-diff" => cosineDiff _
+      case x => {
+        Console.err.println(x)
+        ???
+      }
+    }
+
+    index.findSimilar(index.prob(query), comparison, numResults).foreach {
+      case SimilarTerm(key, score, _) => {
+        println(key+" "+score)
+      }
+    }
+  }
+  
+  def findFake(args: Array[String]) {
+    if(args.size != 3) {
+      Util.quit("error: expected -> index-csv year count")
+    }
+
+    val index = new CSVIndex(args(0))
+    val year = args(1).toInt
+    val numResults = args(2).toInt
+
+    ???
+  }
+
+  def plotMatching(args: Array[String]) {
     if(args.size < 2) {
       Util.quit("error: expected -> index-csv queries...")
     }
 
+    val index = new CSVIndex(args(0))
+    val queries = args.tail.map(_.toLowerCase)
+
+    val keys = queries.map(q => {
+      index.terms.filter(key => key.contains(q))
+    }).flatten
+    
+    println(index.header)
+    keys.foreach(q => {
+      val res = index.prob(q)
+      println(q+","+res.mkString(","))
+    })
+  }
+
+  def plotExact(args: Array[String]) {
+    if(args.size < 2) {
+      Util.quit("error: expected -> index-csv queries...")
+    }
+
+    val index = new CSVIndex(args(0))
     val queries = args.tail
-
-    val termData = IO.fileLines(args(0)).map(line => {
-      val cells = line.split(" ")
-      val term = cells(0)
-      val data = wrapIntArray(cells.tail.map(_.toInt).toArray)
-      (term, data)
-    }).toMap
-
-    println("term,"+(1820 to 1919).mkString(","))
+    
+    println(index.header)
     queries.foreach(q => {
-      termData.get(q) match {
+      index.prob.get(q) match {
         case Some(res) => println(q+","+res.mkString(","))
         case None => Console.err.println(q+" was not found!")
       }
     })
   }
+}
 
+class CSVIndex(val path: String) {
+  val data = IO.fileLines(path).map(line => {
+    val cells = line.split(" ")
+    val term = cells(0)
+    val tfv = cells.tail.map(_.toDouble).toArray
+    (term, tfv)
+  }).toMap
+  val yearMax = {
+    var vocabCount = new Array[Double](domain.size)
+    data.values.foreach(varray => {
+      vocabCount.indices.foreach(idx => {
+        vocabCount(idx) += varray(idx)
+      })
+    })
+    vocabCount
+  }
+  assert(yearMax.size == domain.size)
+  val prob = data.mapValues(arr => {
+    Array.tabulate(domain.size)(idx => {
+      val tf = arr(idx)
+      val maxTF = yearMax(idx)
+      tf / maxTF
+    })
+  })
+
+  def findSimilar(queryCurve: Array[Double], comparison: (Array[Double], Array[Double])=>Double, numResults: Int) = {
+    val rankedList = new RankedList[SimilarTerm](numResults)
+
+    prob.foreach {
+      case (key, curve) => {
+        rankedList.insert(SimilarTerm(key, comparison(queryCurve, curve), Array())) 
+      }
+    }
+
+    rankedList.done
+  }
+  
+  val header = "#,"+domain.mkString(",")
+  def terms = data.keySet
+  def domain = (1820 until 1920)
 }
 
 class SortedWordData(path: String, val index: Int) {

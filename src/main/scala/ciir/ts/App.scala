@@ -39,6 +39,8 @@ object App {
     ("filter-words" -> TextIndex.filterWords),
     ("create-txt-postings" -> TextIndex.create),
     ("txt-find-similar" -> TextIndex.findSimilar),
+    ("txt-plot-exact" -> TextIndex.plotExact),
+    ("txt-plot-matching" -> TextIndex.plotMatching),
 
     // build a part of a memory index
     // separated for memory concerns; preserves input list order
